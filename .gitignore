@@ -1,2 +1,5 @@
 # old snapshots made before Git; history now lives in Git
 versions/
+
+# design sketches (not part of the app)
+design/
