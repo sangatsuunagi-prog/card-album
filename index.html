@@ -1,0 +1,2254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f0e0c">
+<meta name="robots" content="noindex, nofollow">
+<title>カードアルバム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Shippori+Mincho:wght@500;700&family=DotGothic16&family=Libre+Caslon+Text:ital@0;1&family=Noto+Sans+JP:wght@400;500;700;900&family=Dela+Gothic+One&family=RocknRoll+One&family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Zen+Old+Mincho:wght@700;900&family=Zen+Antique&family=Zen+Maru+Gothic:wght@500;700;900&family=Klee+One:wght@600&family=Yusei+Magic&family=Mochiy+Pop+One&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js" defer></script>
+<style>
+  :root{
+    --ink:#17140f;
+    --paper:#c9c6bf;
+    --accent:#b5482f;
+    --bg:#0f0e0c;
+    --panel:#1b1b1b;
+    --panel-2:#2a2a26;
+    --border:#3d3b34;
+    --text:#efe9df;
+    --muted:#a39c8c;
+    --dim:#7d766a;
+    /* album / viewer background (changeable from the menu) */
+    --app-bg:#0f0e0c;
+    --on-app:#efe9df;
+    --on-app-muted:#7d766a;
+    --app-line:rgba(255,255,255,.08);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;
+    min-height:100vh;
+    background:var(--app-bg);
+    color:var(--text);
+    font-family:'Noto Sans JP', sans-serif;
+  }
+  /* optional photo background (a fixed layer, since iOS ignores background-attachment:fixed) */
+  body.has-bg-image{background:transparent;}
+  body.has-bg-image::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    background:linear-gradient(var(--app-scrim), var(--app-scrim)), var(--app-bg-image) center / cover no-repeat;
+  }
+  .bg-img-actions{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;}
+  body.locked{overflow:hidden;}
+  button{font-family:inherit;}
+  [hidden]{display:none !important;}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:10;
+    background:var(--app-bg);
+    background:color-mix(in srgb, var(--app-bg) 92%, transparent);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    padding:calc(14px + env(safe-area-inset-top)) 16px 0;
+    border-bottom:1px solid var(--app-line);
+    color:var(--on-app);
+  }
+  .topbar .icon-btn, .viewer .icon-btn{color:var(--on-app);}
+  .topbar .icon-btn:active, .viewer .icon-btn:active{background:var(--app-line);}
+  .topbar-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    max-width:960px;
+    margin:0 auto;
+  }
+  .topbar h1{
+    font-family:'Anton', sans-serif;
+    font-weight:400;
+    font-size:24px;
+    letter-spacing:.04em;
+    margin:0;
+  }
+  .icon-btn{
+    background:none;
+    border:none;
+    color:var(--text);
+    font-size:22px;
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    cursor:pointer;
+  }
+  .icon-btn:active{background:#2a2925;}
+  .tabs{
+    display:flex;
+    gap:4px;
+    max-width:960px;
+    margin:10px auto 0;
+  }
+  .tab{
+    flex:1;
+    background:none;
+    border:none;
+    color:var(--on-app-muted);
+    font-size:14px;
+    font-weight:700;
+    padding:10px 0 12px;
+    border-bottom:2px solid transparent;
+    cursor:pointer;
+  }
+  .tab.active{color:var(--on-app);border-bottom-color:var(--accent);}
+  .tab .n{font-weight:400;font-size:12px;margin-left:4px;color:var(--on-app-muted);}
+  .toolbar{
+    display:flex;
+    gap:8px;
+    max-width:960px;
+    margin:12px auto 0;
+  }
+  .toolbar input, .toolbar select{
+    background:var(--app-line);
+    border:1px solid var(--app-line);
+    color:var(--on-app);
+    border-radius:999px;
+    font-family:inherit;
+    font-size:16px;  /* 16px keeps iOS from zooming in on focus */
+    padding:8px 14px;
+    outline:none;
+  }
+  .toolbar input{flex:1;min-width:0;-webkit-appearance:none;appearance:none;}
+  .toolbar input::placeholder{color:var(--on-app-muted);}
+  .toolbar input:focus{border-color:var(--accent);}
+  .toolbar select{
+    flex-shrink:0;
+    width:auto;
+    font-size:14px;
+  }
+  .toolbar select option{color:#17140f;}
+
+  .menu{
+    position:absolute;
+    right:16px;
+    top:calc(56px + env(safe-area-inset-top));
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+    z-index:20;
+    min-width:200px;
+  }
+  .menu button{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:none;
+    border:none;
+    color:var(--text);
+    font-size:14px;
+    padding:14px 16px;
+    cursor:pointer;
+  }
+  .menu button + button{border-top:1px solid var(--border);}
+  .menu button:active{background:#33322c;}
+
+  /* ---------- grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:14px;
+    padding:18px 16px calc(110px + env(safe-area-inset-bottom));
+    max-width:960px;
+    margin:0 auto;
+  }
+  @media (min-width:640px){ .grid{grid-template-columns:repeat(3, 1fr);gap:20px;} }
+  @media (min-width:900px){ .grid{grid-template-columns:repeat(4, 1fr);} }
+  .grid .card-wrap{cursor:pointer;transition:transform .15s;}
+  .grid .card-wrap:active{transform:scale(.97);}
+  .grid .card{box-shadow:0 8px 24px rgba(0,0,0,.45);}
+
+  .empty-state{
+    text-align:center;
+    color:var(--on-app-muted);
+    font-size:14px;
+    line-height:1.9;
+    padding:80px 24px;
+  }
+  .empty-state .big{font-size:40px;display:block;margin-bottom:8px;}
+
+  .fab{
+    position:fixed;
+    right:20px;
+    bottom:calc(24px + env(safe-area-inset-bottom));
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    font-size:30px;
+    line-height:1;
+    box-shadow:0 8px 24px rgba(0,0,0,.5);
+    cursor:pointer;
+    z-index:5;
+  }
+  .fab:active{transform:scale(.94);}
+
+  /* ---------- card (fixed 3:5; sizes scale with the card width) ---------- */
+  .card-wrap{container-type:inline-size;width:100%;}
+  .card{
+    width:100%;
+    aspect-ratio:3/5;
+    display:flex;
+    flex-direction:column;
+    background:var(--paper);
+    color:var(--ink);
+    padding:4.1cqw;
+    overflow:hidden;
+    --ink-rgb:23,20,15;
+  }
+  /* dark card colors (e.g. bordeaux) switch the text to light */
+  .card.dark{--ink:#f3ece0;--ink-rgb:243,236,224;}
+  .card.dark .stars{color:#e3b866;}
+  .art{
+    width:100%;
+    aspect-ratio:1/1;
+    flex-shrink:0;
+    background-color:rgba(var(--ink-rgb),.12);
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:rgba(var(--ink-rgb),.45);
+    font-size:3.4cqw;
+  }
+  .art.empty::after{content:'NO IMAGE';letter-spacing:.1em;}
+  .info, .info-holder{flex:1;min-height:0;display:flex;flex-direction:column;}
+  .info{padding:4cqw 1.5cqw 0;}
+  /* every row has a fixed height, so empty items keep their space */
+  .title-row{
+    flex-shrink:0;
+    height:19cqw;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:2.6cqw;
+    border-bottom:.5cqw solid var(--ink);
+    padding-bottom:2cqw;
+    margin-bottom:2.4cqw;
+  }
+  /* the font picked in the editor applies to the title, year and item values */
+  .title-row .t, .title-row .y, .meta-line .v{font-family:var(--card-font, 'Noto Sans JP', sans-serif);}
+  .title-row .t{
+    font-weight:900;
+    font-size:8cqw;
+    line-height:1.03;
+    letter-spacing:.01em;
+    word-break:break-word;
+    min-width:0;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .title-row .y{
+    font-weight:500;
+    font-size:4.1cqw;
+    line-height:1.2;
+    color:rgba(var(--ink-rgb),.78);
+    white-space:nowrap;
+  }
+  .stars{
+    flex-shrink:0;
+    height:4.4cqw;
+    font-size:4.4cqw;
+    line-height:1;
+    letter-spacing:.08em;
+    color:var(--accent);
+    margin-bottom:2.4cqw;
+  }
+  .stars .off{color:rgba(var(--ink-rgb),.2);}
+  .meta-line{
+    flex-shrink:0;
+    display:flex;
+    gap:2cqw;
+    font-size:3.2cqw;
+    line-height:1.3;
+    height:4.16cqw;
+    margin-bottom:.9cqw;
+  }
+  .meta-line.two{height:8.32cqw;}
+  .meta-line .k{
+    min-width:20cqw;
+    flex-shrink:0;
+    font-style:var(--label-style, italic);
+    color:rgba(var(--ink-rgb),.68);
+    font-family:var(--label-font, 'Libre Caslon Text', serif);
+  }
+  .meta-line .v{
+    flex:1;
+    min-width:0;
+    font-weight:600;
+    color:var(--ink);
+    letter-spacing:.01em;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .meta-line.two .v{
+    white-space:normal;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+  }
+  .seen{
+    margin-top:auto;
+    padding-top:1.6cqw;
+    border-top:1px dashed rgba(var(--ink-rgb),.3);
+    font-family:var(--label-font, 'Libre Caslon Text', serif);
+    font-style:var(--label-style, italic);
+    font-size:2.9cqw;
+    line-height:1.3;
+    color:rgba(var(--ink-rgb),.68);
+    text-align:right;
+  }
+  .blank{visibility:hidden;}
+
+  /* ---------- card decorations (drawn behind the image and text) ---------- */
+  .card{position:relative;--stamp:#a8322a;--cover-line:rgba(255,255,255,.9);}
+  .card.dark{--stamp:#f0b8a8;}
+  .card > .art, .card > .info, .card > .info-holder{position:relative;z-index:1;}
+  .card.has-deco{padding:6.5cqw;}
+  .deco{position:absolute;inset:0;z-index:0;pointer-events:none;}
+  .deco svg{display:block;width:100%;height:100%;}
+  .paper-layer{
+    background-image:var(--paper-noise);
+    background-size:60cqw 60cqw;
+    mix-blend-mode:multiply;
+    box-shadow:inset 0 0 6cqw rgba(120,85,40,.16);
+  }
+  .card.deco-paper{isolation:isolate;}  /* keep the multiply blend inside the card */
+  /* postmark-style date */
+  .stamp{
+    position:absolute;
+    right:5cqw;
+    bottom:4cqw;
+    width:30cqw;
+    z-index:2;
+    color:var(--stamp);
+    opacity:.85;
+    transform:rotate(-14deg);
+    pointer-events:none;
+    -webkit-mask-image:var(--ink-mask);
+    mask-image:var(--ink-mask);
+    -webkit-mask-size:40cqw 40cqw;
+    mask-size:40cqw 40cqw;
+  }
+  .stamp svg{display:block;width:100%;height:auto;overflow:visible;}
+  .stamp text{font-family:'Oswald', sans-serif;font-weight:700;fill:currentColor;}
+
+  /* ---------- viewer (horizontal carousel) ---------- */
+  .viewer{
+    position:fixed;
+    inset:0;
+    z-index:30;
+    background:var(--app-bg);
+    color:var(--on-app);
+    display:flex;
+    flex-direction:column;
+  }
+  body.has-bg-image .viewer{
+    background:linear-gradient(var(--app-scrim), var(--app-scrim)), var(--app-bg-image) center / cover no-repeat;
+  }
+  .viewer-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:calc(10px + env(safe-area-inset-top)) 12px 6px;
+    position:relative;
+    z-index:5;
+  }
+  .viewer-count{font-size:13px;color:var(--on-app-muted);letter-spacing:.08em;}
+  .viewer-actions{display:flex;gap:8px;}
+  .shot-preview{text-align:center;margin-bottom:16px;min-height:60px;}
+  .shot-preview img{display:none;max-width:100%;max-height:55vh;max-height:55dvh;box-shadow:0 10px 30px rgba(0,0,0,.5);}
+  .shot-preview img.ready{display:inline-block;}
+  .btn:disabled{opacity:.5;}
+  .viewer .text-btn{color:var(--on-app);border-color:var(--app-line);}
+  .text-btn{
+    background:none;
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:999px;
+    font-size:13px;
+    padding:8px 16px;
+    cursor:pointer;
+  }
+  .carousel-area{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+    perspective:1400px;
+  }
+  .stage{
+    position:relative;
+    width:min(60vw, 300px, calc((100vh - 220px) / 1.667));
+    width:min(60vw, 300px, calc((100dvh - 220px) / 1.667));
+    aspect-ratio:3/5;
+    transform-style:preserve-3d;
+  }
+  .slot{
+    position:absolute;
+    inset:0;
+    cursor:pointer;
+  }
+  .slot .card{box-shadow:0 18px 40px rgba(0,0,0,.5);}
+  .slot .shade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;}
+  .viewer-hint{
+    text-align:center;
+    color:var(--on-app-muted);
+    font-size:12px;
+    margin:0;
+    padding:4px 0 calc(16px + env(safe-area-inset-bottom));
+    position:relative;
+    z-index:5;
+  }
+  .nav-btn{
+    display:none;
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    border:1px solid var(--border);
+    background:rgba(27,27,27,.8);
+    color:var(--text);
+    font-size:20px;
+    cursor:pointer;
+    z-index:5;
+  }
+  .nav-btn.prev{left:20px;}
+  .nav-btn.next{right:20px;}
+  @media (hover:hover) and (min-width:640px){ .nav-btn{display:block;} }
+
+  /* ---------- bottom sheet (memo) ---------- */
+  .backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.5);
+    z-index:40;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s;
+  }
+  .backdrop.open{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:41;
+    max-width:560px;
+    margin:0 auto;
+    background:var(--panel);
+    border-radius:18px 18px 0 0;
+    padding:10px 20px calc(20px + env(safe-area-inset-bottom));
+    max-height:88vh;
+    max-height:88dvh;
+    overflow-y:auto;
+    transform:translateY(105%);
+    transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .sheet.open{transform:translateY(0);}
+  .sheet-handle{
+    width:40px;
+    height:4px;
+    border-radius:2px;
+    background:#4a483f;
+    margin:0 auto 14px;
+  }
+  .sheet h2{
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-size:18px;
+    font-weight:900;
+    margin:0 0 4px;
+    word-break:break-word;
+  }
+  .sheet .sub{font-size:12px;color:var(--muted);margin:0 0 18px;}
+  .date-row{display:flex;gap:8px;}
+  .date-row input{flex:1;}
+  .date-row .text-btn{flex-shrink:0;border-radius:8px;}
+  .sheet textarea{
+    width:100%;
+    min-height:200px;
+    resize:vertical;
+    line-height:1.7;
+  }
+  .sheet-foot{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .save-status{font-size:12px;color:var(--dim);}
+  .sheet-foot .btn{width:auto;padding:12px 28px;}
+
+  /* ---------- editor ---------- */
+  .editor{
+    position:fixed;
+    inset:0;
+    z-index:50;
+    background:var(--app-bg);
+    color:var(--on-app);
+    display:flex;
+    flex-direction:column;
+  }
+  /* the editor shares the album background (color or photo); the form panel stays dark */
+  body.has-bg-image .editor{
+    background:linear-gradient(var(--app-scrim), var(--app-scrim)), var(--app-bg-image) center / cover no-repeat;
+  }
+  .editor-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:calc(10px + env(safe-area-inset-top)) 12px 10px;
+    border-bottom:1px solid var(--app-line);
+  }
+  .editor-top .text-btn, .img-actions .text-btn{color:var(--on-app);border-color:var(--app-line);}
+  .editor-top h2{
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-size:16px;
+    font-weight:900;
+    margin:0;
+  }
+  .editor-top .text-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+  .editor-body{
+    flex:1;
+    overflow-y:auto;
+    padding:20px 16px calc(40px + env(safe-area-inset-bottom));
+  }
+  .editor-inner{max-width:440px;margin:0 auto;}
+  .preview-card{width:min(100%, 320px);margin:0 auto 8px;}
+  .preview-card .card{box-shadow:0 14px 40px rgba(0,0,0,.5);}
+  .preview-card .art.has-photo{cursor:grab;touch-action:none;}
+  .preview-card .art.has-photo.dragging{cursor:grabbing;}
+  .preview-card .art.empty::after{content:'画像をタップして選択';letter-spacing:0;}
+  .preview-card .art.empty{cursor:pointer;}
+  .crop-hint{
+    font-size:11px;
+    color:var(--on-app-muted);
+    text-align:center;
+    margin:0 0 6px;
+  }
+  .zoom-row{display:flex;align-items:center;gap:8px;max-width:320px;margin:0 auto;}
+  .zoom-icon{font-size:13px;color:var(--on-app-muted);width:14px;text-align:center;}
+  .zoom-row input{flex:1;accent-color:var(--accent);}
+  .img-actions{display:flex;justify-content:center;gap:8px;margin:10px 0 0;}
+
+  .form{
+    color:var(--text);
+    background:var(--panel);
+    border-radius:14px;
+    padding:22px 18px 24px;
+    margin-top:20px;
+  }
+  .seg{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    background:var(--panel-2);
+    border-radius:10px;
+    padding:4px;
+    margin-bottom:20px;
+  }
+  .seg button{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:14px;
+    font-weight:700;
+    padding:10px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .seg button.active{background:var(--accent);color:#fff;}
+
+  .field{margin-bottom:16px;}
+  .field label, .field .label{
+    display:block;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.08em;
+    color:#c7bfae;
+    margin-bottom:6px;
+  }
+  .req{color:var(--accent);margin-left:4px;}
+  .opt{font-size:10.5px;color:var(--dim);font-weight:400;letter-spacing:0;margin-left:6px;}
+  input[type="text"], input[type="date"], textarea, select{
+    width:100%;
+    padding:11px 12px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:#f2eee4;
+    border-radius:8px;
+    font-family:inherit;
+    font-size:16px;
+    outline:none;
+    color-scheme:dark;
+  }
+  input:focus, textarea:focus, select:focus{border-color:var(--accent);}
+  select{
+    appearance:none;
+    -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23c7bfae'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .err-msg{display:none;font-size:12px;color:#e0826b;margin-top:6px;}
+  .field.invalid input{border-color:#e0826b;}
+  .field.invalid .err-msg{display:block;}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:#c7bfae;
+    border-radius:999px;
+    padding:7px 14px;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  #genreOtherWrap{margin-top:10px;}
+
+  .star-input{display:flex;gap:4px;}
+  .star-input button{
+    background:none;
+    border:none;
+    font-size:32px;
+    line-height:1;
+    color:#4a483f;
+    padding:2px;
+    cursor:pointer;
+  }
+  .star-input button.on{color:var(--accent);}
+
+  .editor[data-type="movie"] .novel-only,
+  .editor[data-type="novel"] .movie-only{display:none;}
+
+  .divider{height:1px;background:#33322c;margin:22px 0;}
+  .swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+  .seg.small{margin-bottom:12px;}
+  .seg.small button{padding:8px;font-size:13px;}
+  .swatch{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:8px;
+    border:2px solid transparent;
+    cursor:pointer;
+    padding:0;
+    position:relative;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);
+  }
+  .swatch.selected{border-color:var(--accent);}
+  .swatch.custom{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:repeating-conic-gradient(#3a3833 0% 25%, #2a2925 0% 50%) 50% / 8px 8px;
+    overflow:hidden;
+  }
+  .swatch.custom input{opacity:0;width:100%;height:100%;cursor:pointer;}
+  .swatch.custom::after{content:'+';position:absolute;color:#efe9df;font-size:14px;pointer-events:none;}
+
+  .btn{
+    width:100%;
+    padding:13px;
+    border:none;
+    border-radius:8px;
+    background:var(--accent);
+    color:#fff;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    font-family:'Zen Kaku Gothic New', sans-serif;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn.danger{background:transparent;border:1px solid #6b3426;color:#e0826b;margin-top:24px;}
+
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:calc(100px + env(safe-area-inset-bottom));
+    transform:translateX(-50%) translateY(20px);
+    background:#efe9df;
+    color:var(--ink);
+    font-size:13px;
+    font-weight:700;
+    padding:10px 18px;
+    border-radius:999px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s, transform .2s;
+    z-index:100;
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-row">
+    <h1>CARD ALBUM</h1>
+    <button class="icon-btn" id="menuBtn" aria-label="メニュー">⋯</button>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="searchInput" placeholder="タイトル・人名・ジャンル・メモで検索" enterkeyhint="search">
+    <select id="sortSelect" aria-label="並び順">
+      <option value="seen">見た日順</option>
+      <option value="created">追加した順</option>
+      <option value="rating">評価順</option>
+      <option value="title">タイトル順</option>
+    </select>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-filter="all">すべて<span class="n" id="nAll">0</span></button>
+    <button class="tab" data-filter="movie">映画<span class="n" id="nMovie">0</span></button>
+    <button class="tab" data-filter="novel">小説<span class="n" id="nNovel">0</span></button>
+  </nav>
+  <div class="menu" id="menu" hidden>
+    <button id="bgBtn">背景の色を変える</button>
+    <button id="exportBtn">データを書き出す(バックアップ)</button>
+    <button id="importBtn">データを読み込む</button>
+  </div>
+  <input type="file" id="importInput" accept="application/json,.json" hidden>
+</header>
+
+<main class="grid" id="grid"></main>
+<div class="empty-state" id="emptyState" hidden></div>
+<button class="fab" id="addBtn" aria-label="カードを追加">＋</button>
+
+<!-- viewer -->
+<div class="viewer" id="viewer" hidden>
+  <div class="viewer-top">
+    <button class="icon-btn" id="viewerClose" aria-label="閉じる">✕</button>
+    <span class="viewer-count" id="viewerCount"></span>
+    <div class="viewer-actions">
+      <button class="text-btn" id="viewerShot">画像で保存</button>
+      <button class="text-btn" id="viewerEdit">編集</button>
+    </div>
+  </div>
+  <div class="carousel-area" id="carouselArea">
+    <div class="stage" id="stage"></div>
+  </div>
+  <button class="nav-btn prev" id="prevBtn" aria-label="前へ">‹</button>
+  <button class="nav-btn next" id="nextBtn" aria-label="次へ">›</button>
+  <p class="viewer-hint">左右になぞって回す ・ 正面のカードをタップでメモ</p>
+</div>
+
+<!-- memo sheet -->
+<div class="backdrop" id="backdrop"></div>
+<section class="sheet" id="sheet" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <h2 id="sheetTitle"></h2>
+  <p class="sub" id="sheetSub"></p>
+  <div class="field">
+    <label for="dateInput" id="dateLabel">見た日</label>
+    <div class="date-row">
+      <input type="date" id="dateInput">
+      <button class="text-btn" id="todayBtn">今日</button>
+    </div>
+  </div>
+  <div class="field">
+    <label for="memoInput">メモ・感想</label>
+    <textarea id="memoInput" placeholder="印象に残ったシーン、好きなセリフ、感じたこと…"></textarea>
+  </div>
+  <div class="sheet-foot">
+    <span class="save-status" id="saveStatus"></span>
+    <button class="btn" id="sheetClose">閉じる</button>
+  </div>
+</section>
+
+<!-- save card as image -->
+<section class="sheet" id="shotSheet" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <h2>カードを画像で保存</h2>
+  <p class="sub" id="shotSub"></p>
+  <div class="shot-preview"><img id="shotImg" alt=""></div>
+  <div class="sheet-foot">
+    <button class="text-btn" id="shotClose">閉じる</button>
+    <button class="btn" id="shotSave" disabled>保存する</button>
+  </div>
+</section>
+
+<!-- background color sheet -->
+<section class="sheet" id="bgSheet" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <h2>背景の色</h2>
+  <p class="sub">アルバムとカードを見る画面の背景が変わります</p>
+  <div class="field">
+    <div class="swatches" id="bgSwatches"></div>
+  </div>
+  <div class="bg-img-actions">
+    <button class="text-btn" id="bgImgBtn">写真を背景にする</button>
+    <button class="text-btn" id="bgImgRemove" hidden>写真を外す</button>
+  </div>
+  <input type="file" id="bgImgInput" accept="image/*" hidden>
+  <div class="sheet-foot">
+    <span></span>
+    <button class="btn" id="bgClose">閉じる</button>
+  </div>
+</section>
+
+<!-- editor -->
+<div class="editor" id="editor" data-type="movie" hidden>
+  <div class="editor-top">
+    <button class="text-btn" id="editorCancel">キャンセル</button>
+    <h2 id="editorTitle">新しいカード</h2>
+    <button class="text-btn primary" id="editorSave">保存</button>
+  </div>
+  <div class="editor-body" id="editorBody">
+    <div class="editor-inner">
+      <div class="preview-card card-wrap">
+        <article class="card" id="pvCard">
+          <div id="pvDeco"></div>
+          <div class="art empty" id="pvArt"></div>
+          <div id="pvInfo" class="info-holder"></div>
+          <div id="pvStamp"></div>
+        </article>
+      </div>
+      <div id="cropControls" hidden>
+        <p class="crop-hint">画像をドラッグして位置を調整できます</p>
+        <div class="zoom-row">
+          <span class="zoom-icon">－</span>
+          <input type="range" id="zoomRange" min="100" max="280" value="100">
+          <span class="zoom-icon">＋</span>
+        </div>
+      </div>
+      <div class="img-actions">
+        <button class="text-btn" id="pickImgBtn">画像を選ぶ</button>
+        <button class="text-btn" id="removeImgBtn" hidden>画像を外す</button>
+      </div>
+      <input type="file" id="imgInput" accept="image/*" hidden>
+
+      <div class="form">
+        <div class="seg" id="typeSeg">
+          <button data-type="movie" class="active">🎞️ 映画</button>
+          <button data-type="novel">📖 小説</button>
+        </div>
+
+        <div class="field" data-field="title">
+          <label for="fTitle">タイトル<span class="req">*</span></label>
+          <input type="text" id="fTitle" placeholder="例）POOR THINGS">
+          <div class="err-msg">タイトルを入力してください</div>
+        </div>
+
+        <div class="field movie-only" data-field="director">
+          <label for="fDirector">監督<span class="req">*</span></label>
+          <input type="text" id="fDirector" placeholder="例）YORGOS LANTHIMOS">
+          <div class="err-msg">監督を入力してください</div>
+        </div>
+
+        <div class="field novel-only" data-field="author">
+          <label for="fAuthor">作者<span class="req">*</span></label>
+          <input type="text" id="fAuthor" placeholder="例）カズオ・イシグロ">
+          <div class="err-msg">作者を入力してください</div>
+        </div>
+
+        <div class="field novel-only">
+          <label for="fTranslator">翻訳者<span class="opt">任意</span></label>
+          <input type="text" id="fTranslator" placeholder="例）土屋政雄">
+        </div>
+
+        <div class="row2">
+          <div class="field" data-field="year">
+            <label for="fYear">発表年<span class="req">*</span></label>
+            <input type="text" id="fYear" inputmode="numeric" maxlength="4" placeholder="2024">
+            <div class="err-msg">数字で入力してください</div>
+          </div>
+        </div>
+
+        <div class="field movie-only">
+          <span class="label">ジャンル<span class="opt">任意・複数選べます</span></span>
+          <div class="chips" id="genreChips"></div>
+          <div id="genreOtherWrap" hidden>
+            <input type="text" id="fGenre" placeholder="ジャンルを入力（複数は「、」で区切る）">
+          </div>
+        </div>
+
+        <div class="field" data-field="rating">
+          <span class="label">評価<span class="req">*</span></span>
+          <div class="star-input" id="starInput">
+            <button data-v="1" aria-label="星1">★</button>
+            <button data-v="2" aria-label="星2">★</button>
+            <button data-v="3" aria-label="星3">★</button>
+            <button data-v="4" aria-label="星4">★</button>
+            <button data-v="5" aria-label="星5">★</button>
+          </div>
+          <div class="err-msg">星をタップして評価してください</div>
+        </div>
+
+        <div class="movie-only">
+          <div class="field">
+            <label for="fCast1">主演 1<span class="opt">任意</span></label>
+            <input type="text" id="fCast1" placeholder="例）EMMA STONE">
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="fCast2">主演 2<span class="opt">任意</span></label>
+              <input type="text" id="fCast2">
+            </div>
+            <div class="field">
+              <label for="fCast3">主演 3<span class="opt">任意</span></label>
+              <input type="text" id="fCast3">
+            </div>
+          </div>
+          <div class="field">
+            <label for="fStudio">制作スタジオ<span class="opt">任意</span></label>
+            <input type="text" id="fStudio" placeholder="例）SEARCHLIGHT PICTURES">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="field">
+          <span class="label">背景色</span>
+          <div class="seg small" id="toneSeg">
+            <button data-tone="pastel" class="active">パステル</button>
+            <button data-tone="muted">渋め</button>
+          </div>
+          <div class="swatches" id="swatches">
+            <label class="swatch custom" title="カスタムカラー">
+              <input type="color" id="customColor" value="#c9c6bf">
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="fFont">書体<span class="opt">タイトルと各項目</span></label>
+          <select id="fFont"></select>
+        </div>
+
+        <div class="field">
+          <label for="fLabelFont">ラベルの書体<span class="opt">directed by などの小さな文字</span></label>
+          <select id="fLabelFont"></select>
+        </div>
+
+        <div class="field">
+          <span class="label">デザイン</span>
+          <div class="chips" id="decoChips"></div>
+        </div>
+
+        <div class="field">
+          <span class="label">見た日・読んだ日の表示</span>
+          <div class="seg small" id="dateStyleSeg">
+            <button data-style="stamp">消印</button>
+            <button data-style="text">文字</button>
+          </div>
+        </div>
+
+        <button class="btn danger" id="deleteBtn" hidden>このカードを削除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// each choice = a Latin face first, then a Japanese face for the characters the Latin one lacks
+const FONTS = {
+  anton:     ["'Anton', 'Dela Gothic One', sans-serif", 'Anton + Dela Gothic One（極太ポスター）'],
+  archivo:   ["'Archivo Black', 'Zen Kaku Gothic New', sans-serif", 'Archivo Black + Zen角ゴシック（力強いゴシック）'],
+  bebas:     ["'Bebas Neue', 'RocknRoll One', sans-serif", 'Bebas Neue + RocknRoll One（コンデンス・ポップ）'],
+  oswald:    ["'Oswald', 'Zen Kaku Gothic New', sans-serif", 'Oswald + Zen角ゴシック（すっきり）'],
+  zen:       ["'Zen Kaku Gothic New', sans-serif", 'Zen角ゴシック New（和文ゴシック）'],
+  mincho:    ["'Libre Caslon Text', 'Shippori Mincho', serif", 'Libre Caslon + Shippori明朝（上品な明朝）'],
+  oldmincho: ["'Playfair Display', 'Zen Old Mincho', serif", 'Playfair + Zen Old明朝（クラシック）'],
+  antique:   ["'Zen Antique', serif", 'Zen Antique（レトロ）'],
+  maru:      ["'Zen Maru Gothic', sans-serif", 'Zen丸ゴシック（やわらか）'],
+  klee:      ["'Klee One', cursive", 'Klee One（手書き風）'],
+  yusei:     ["'Yusei Magic', sans-serif", 'Yusei Magic（マーカー風）'],
+  pop:       ["'Mochiy Pop One', sans-serif", 'Mochiy Pop One（ポップ）'],
+  dot:       ["'DotGothic16', sans-serif", 'DotGothic16（ドット風）'],
+};
+const DEFAULT_COLOR = '#c9c6bf';
+// earlier, lighter palette → current deeper palette (for cards saved before the change)
+const OLD_COLORS = {
+  '#efe9df':'#e0cfb1', '#e3e1dc':'#c9c6bf', '#d7dede':'#a9bfc4', '#dcdfd4':'#b5c0a3',
+  '#e2d9d6':'#d3b2aa', '#dcd6df':'#b9aec6', '#d9d2c4':'#cdb995', '#cfcfcf':'#a8a8a8',
+};
+
+/* ---------- storage (IndexedDB) ---------- */
+const DB = {
+  db: null,
+  open(){
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('card-album', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('cards', {keyPath:'id'});
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  all(){
+    return new Promise((res, rej) => {
+      const r = this.db.transaction('cards').objectStore('cards').getAll();
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  },
+  write(fn){
+    return new Promise((res, rej) => {
+      const t = this.db.transaction('cards', 'readwrite');
+      fn(t.objectStore('cards'));
+      t.oncomplete = () => res();
+      t.onerror = () => rej(t.error);
+    });
+  },
+  put(card){ return this.write(s => s.put(card)); },
+  putMany(list){ return this.write(s => list.forEach(c => s.put(c))); },
+  del(id){ return this.write(s => s.delete(id)); },
+};
+
+let cards = [];
+let filter = 'all';
+
+let query = '';
+let sortBy = 'seen';
+try{ sortBy = localStorage.getItem('card-album-sort') || 'seen'; }catch(err){}
+
+// for search: full-width → half-width, lower case, katakana → hiragana
+function normalize(s){
+  return String(s || '').normalize('NFKC').toLowerCase()
+    .replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+}
+function haystack(c){
+  return normalize([c.title, c.director, c.author, c.translator, c.genre, (c.cast || []).join(' '),
+    c.studio, c.year, c.memo].join(' '));
+}
+// newest viewing date first; cards without a date go after, newest added first
+function bySeen(a, b){
+  if((a.date || '') !== (b.date || '')) return (b.date || '').localeCompare(a.date || '');
+  return b.createdAt - a.createdAt;
+}
+const SORTS = {
+  seen: bySeen,
+  created: (a, b) => b.createdAt - a.createdAt,
+  rating: (a, b) => (b.rating || 0) - (a.rating || 0) || bySeen(a, b),
+  title: (a, b) => normalize(a.title).localeCompare(normalize(b.title), 'ja'),
+};
+function visibleCards(){
+  const words = normalize(query).split(/\s+/).filter(Boolean);  // every word must match
+  return cards
+    .filter(c => filter === 'all' || c.type === filter)
+    .filter(c => !words.length || (h => words.every(w => h.includes(w)))(haystack(c)))
+    .sort(SORTS[sortBy] || bySeen);
+}
+function findCard(id){ return cards.find(c => c.id === id); }
+
+/* ---------- layers & back button ---------- */
+// Each overlay (viewer / sheet / editor) pushes a history entry so the
+// phone's back button closes the top one.
+const layers = [];
+history.replaceState({depth:0}, '');
+function pushLayer(close){
+  layers.push(close);
+  history.pushState({depth:layers.length}, '');
+  document.body.classList.add('locked');
+}
+function closeLayers(n = 1){ history.go(-n); }
+window.addEventListener('popstate', e => {
+  const depth = (e.state && e.state.depth) || 0;
+  while(layers.length > depth) layers.pop()();
+  document.body.classList.toggle('locked', layers.length > 0);
+});
+
+/* ---------- card rendering ---------- */
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, ch =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+// an empty item still takes its row, so every card has the same layout
+function metaLine(k, v, cls = ''){
+  return `<div class="meta-line ${cls}${v ? '' : ' blank'}"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`;
+}
+// font for the small labels ("directed by", "watched …"): [font-family, font-style, menu label]
+const LABEL_FONTS = {
+  caslon:   ["'Libre Caslon Text', serif", 'italic', 'Libre Caslon（イタリック）'],
+  playfair: ["'Playfair Display', serif", 'italic', 'Playfair（イタリック）'],
+  oswald:   ["'Oswald', sans-serif", 'normal', 'Oswald（すっきり）'],
+  bebas:    ["'Bebas Neue', sans-serif", 'normal', 'Bebas Neue（コンデンス）'],
+  same:     [null, 'normal', 'カードの書体と同じ'],
+};
+function labelFontOf(c){
+  const lf = LABEL_FONTS[c.labelFont] || LABEL_FONTS.caslon;
+  return [lf[0] || (FONTS[c.titleFont] || FONTS.anton)[0], lf[1]];
+}
+function infoHTML(c){
+  const title = c.title || 'TITLE';
+  const font = (FONTS[c.titleFont] || FONTS.anton)[0];
+  const [labelFont, labelStyle] = labelFontOf(c);
+  const r = c.rating || 0;
+  let body = '';
+  if(c.type === 'novel'){
+    body += metaLine('written by', c.author);
+    body += metaLine('translated by', c.translator);
+  }else{
+    body += metaLine('genre', c.genre);
+    body += metaLine('directed by', c.director);
+    body += metaLine('starring', (c.cast || []).filter(Boolean).join(', '), 'two');
+    body += metaLine('studio', c.studio);
+  }
+  const seen = c.date && c.dateStyle !== 'stamp'
+    ? `<div class="seen">${c.type === 'novel' ? 'read' : 'watched'} ${esc(c.date.replace(/-/g, '.'))}</div>`
+    : '<div class="seen blank">&nbsp;</div>';
+  return `<div class="info" style="--card-font:${font};--label-font:${labelFont};--label-style:${labelStyle}">
+    <div class="title-row">
+      <div class="t">${esc(title)}</div>
+      <div class="y">${esc(c.year)}</div>
+    </div>
+    <div class="stars">${'★'.repeat(r)}<span class="off">${'★'.repeat(5 - r)}</span></div>
+    ${body}${seen}
+  </div>`;
+}
+/* ---------- card decorations ---------- */
+// All drawings use a 300×500 box (the card's 3:5 shape) and sit behind the image and text.
+const DECOS = [
+  ['none', 'なし'],
+  ['frame-round', '白枠・抉れ角'],
+  ['frame-cut', '白枠・45度'],
+  ['arabesque', '唐草'],
+  ['paper', '古紙'],
+  ['film', 'フィルム', 'movie'],
+  ['cover', 'カバー下', 'novel'],
+];
+const svgBox = inner => `<svg viewBox="0 0 300 500" preserveAspectRatio="none" fill="none">${inner}</svg>`;
+
+function frameRoundSVG(){
+  // corners scooped inward (circle centred on each corner)
+  const d = 7, r = 12, W = 300, H = 500;
+  const p = `M${d + r} ${d} H${W - d - r} A${r} ${r} 0 0 0 ${W - d} ${d + r} V${H - d - r}` +
+    ` A${r} ${r} 0 0 0 ${W - d - r} ${H - d} H${d + r} A${r} ${r} 0 0 0 ${d} ${H - d - r}` +
+    ` V${d + r} A${r} ${r} 0 0 0 ${d + r} ${d} Z`;
+  return svgBox(`<path d="${p}" stroke="rgba(255,255,255,.9)" stroke-width="1.4"/>`);
+}
+function frameCutSVG(){
+  const d = 7, c = 11, W = 300, H = 500;
+  const pts = [[d + c, d], [W - d - c, d], [W - d, d + c], [W - d, H - d - c], [W - d - c, H - d], [d + c, H - d], [d, H - d - c], [d, d + c]];
+  return svgBox(`<polygon points="${pts.map(p => p.join(',')).join(' ')}" stroke="rgba(255,255,255,.9)" stroke-width="1.4"/>`);
+}
+function arabesqueSVG(){
+  // one simple scroll, mirrored, then placed on the middle of each side
+  const half = '<path d="M4 0 C9 -6 16 -6 20 -1 C24 4 31 5 35 0 C38 -4 35 -8 31 -6 C28 -4 30 -1 33 -1"/>' +
+    '<path d="M12 -4 C11 -9 16 -11 18 -8"/><path d="M25 3 C25 8 30 9 31 6"/>';
+  const orn = `<rect x="-40" y="-11" width="80" height="22" style="fill:var(--card-bg)" stroke="none"/>` +
+    `${half}<g transform="scale(-1,1)">${half}</g><path d="M0 -6 C3 -2 3 2 0 6 C-3 2 -3 -2 0 -6Z"/>`;
+  const place = ['translate(150,9) scale(.8)', 'translate(291,250) rotate(90) scale(.8)',
+    'translate(150,491) rotate(180) scale(.8)', 'translate(9,250) rotate(-90) scale(.8)'];
+  return svgBox(`<g style="stroke:rgba(var(--ink-rgb),.55)" stroke-width="1" stroke-linecap="round">
+    <rect x="9" y="9" width="282" height="482"/>${place.map(t => `<g transform="${t}">${orn}</g>`).join('')}</g>`);
+}
+function filmSVG(){
+  // sprocket strips down both sides
+  let holes = '';
+  for(let y = 6; y < 494; y += 16){
+    holes += `<rect x="5" y="${y}" width="8" height="9" rx="1.5"/><rect x="287" y="${y}" width="8" height="9" rx="1.5"/>`;
+  }
+  return svgBox(`<rect x="0" y="0" width="18" height="500" fill="#111"/><rect x="282" y="0" width="18" height="500" fill="#111"/>
+    <g fill="#efe9df">${holes}</g>`);
+}
+function coverSVG(){
+  // a twisted cord around the edge (two strands crossing) and a thin inner rule, like a bunko cover
+  const inset = 8, A = 3, period = 14, W = 300, H = 500;
+  const corners = [[inset, inset], [W - inset, inset], [W - inset, H - inset], [inset, H - inset]];
+  const strand = sign => {
+    let d = `M${inset} ${inset}`;
+    corners.forEach((p, i) => {
+      const q = corners[(i + 1) % 4];
+      const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      const n = Math.round(len / period) * 2;  // half-waves
+      const ux = (q[0] - p[0]) / len, uy = (q[1] - p[1]) / len;
+      const nx = -uy, ny = ux, step = len / n;
+      for(let k = 0; k < n; k++){
+        const s = sign * (k % 2 ? -1 : 1) * 2 * A;  // quadratic peak is half the control offset
+        const mx = p[0] + ux * step * (k + .5) + nx * s, my = p[1] + uy * step * (k + .5) + ny * s;
+        const ex = p[0] + ux * step * (k + 1), ey = p[1] + uy * step * (k + 1);
+        d += ` Q${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`;
+      }
+    });
+    return `<path d="${d}"/>`;
+  };
+  return svgBox(`<g style="stroke:var(--cover-line)" stroke-width=".9">${strand(1)}${strand(-1)}
+    <rect x="15" y="15" width="270" height="470" stroke-width=".7"/></g>`);
+}
+const DECO_SVG = {
+  'frame-round': frameRoundSVG(),
+  'frame-cut': frameCutSVG(),
+  'arabesque': arabesqueSVG(),
+  'film': filmSVG(),
+  'cover': coverSVG(),
+};
+
+// film is only for movies, cover only for novels
+function decoOf(c){
+  const d = c.deco || 'none';
+  const def = DECOS.find(x => x[0] === d);
+  if(!def || (def[2] && def[2] !== c.type)) return 'none';
+  return d;
+}
+function decoHTML(deco){
+  if(deco === 'none') return '';
+  if(deco === 'paper') return '<div class="deco paper-layer"></div>';
+  return `<div class="deco">${DECO_SVG[deco]}</div>`;
+}
+
+// chipped edges for the old-paper look: a seeded random outline, so each card
+// gets its own chips and keeps them every time it is drawn
+function seededRandom(str){
+  let h = 1779033703 ^ str.length;
+  for(let i = 0; i < str.length; i++){ h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return () => {
+    h = Math.imul(h ^ h >>> 16, 2246822507);
+    h = Math.imul(h ^ h >>> 13, 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+}
+function chipClip(id){
+  const rnd = seededRandom(String(id));
+  const ky = 0.6;  // the card is 5/3 as tall as wide, so vertical % are smaller
+  const sides = [[], [], [], []];
+  const count = 4 + Math.floor(rnd() * 3);
+  for(let i = 0; i < count; i++){
+    sides[Math.floor(rnd() * 4)].push({t:0.08 + rnd() * 0.84, len:2 + rnd() * 4, depth:0.6 + rnd() * 1.1});
+  }
+  const cut = () => rnd() < 0.35 ? 0.8 + rnd() * 1.2 : 0;  // occasionally a nicked corner
+  const cuts = [cut(), cut(), cut(), cut()];
+  const pts = [];
+  // each side: start corner, direction along the edge, inward normal (all in %)
+  const edges = [
+    {o:[0, 0],     u:[1, 0],  n:[0, 1]},
+    {o:[100, 0],   u:[0, 1],  n:[-1, 0]},
+    {o:[100, 100], u:[-1, 0], n:[0, -1]},
+    {o:[0, 100],   u:[0, -1], n:[1, 0]},
+  ];
+  edges.forEach((e, i) => {
+    const scale = e.u[0] ? 1 : ky;  // inward depth measured across the edge
+    const cIn = cuts[i];
+    const at = (s, depth) => [e.o[0] + e.u[0] * s + e.n[0] * depth * (e.n[0] ? 1 : ky),
+                              e.o[1] + e.u[1] * s + e.n[1] * depth * (e.n[1] ? 1 : ky)];
+    if(cIn){ pts.push(at(0, cIn)); pts.push(at(cIn * scale * 0.8, 0)); }
+    else pts.push(at(0, 0));
+    sides[i].sort((a, b) => a.t - b.t).forEach(ch => {
+      const s = ch.t * 100, L = ch.len * scale;
+      pts.push(at(s - L / 2, 0), at(s - L * 0.2, ch.depth * 0.8), at(s + L * 0.15, ch.depth), at(s + L / 2, 0));
+    });
+  });
+  return `polygon(${pts.map(p => `${p[0].toFixed(2)}% ${p[1].toFixed(2)}%`).join(',')})`;
+}
+
+// postmark: label on an arc, the date across the middle
+function stampHTML(c){
+  if(!c.date || c.dateStyle !== 'stamp') return '';
+  const arc = `arc-${String(c.id || 'preview').replace(/[^a-zA-Z0-9-]/g, '')}`;
+  const label = c.type === 'novel' ? 'READ' : 'WATCHED';
+  return `<div class="stamp"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor">
+    <defs><path id="${arc}" d="M20.6 44 A30 30 0 0 1 79.4 44"/></defs>
+    <circle cx="50" cy="50" r="46" stroke-width="2.4"/>
+    <circle cx="50" cy="50" r="40" stroke-width="1"/>
+    <text font-size="10" letter-spacing="2" stroke="none"><textPath href="#${arc}" startOffset="50%" text-anchor="middle">${label}</textPath></text>
+    <line x1="12" y1="50" x2="88" y2="50" stroke-width="1"/>
+    <line x1="12" y1="70" x2="88" y2="70" stroke-width="1"/>
+    <text x="50" y="65" font-size="12" text-anchor="middle" stroke="none">${esc(c.date.replace(/-/g, '.'))}</text>
+  </svg></div>`;
+}
+
+// class list and inline style shared by album cards and the editor preview
+function cardLook(c){
+  const color = c.color || DEFAULT_COLOR, deco = decoOf(c);
+  const cls = 'card' + (isLight(color) ? '' : ' dark') + (deco === 'none' ? '' : ` has-deco deco-${deco}`);
+  let style = `background:${esc(color)};--card-bg:${esc(color)}`;
+  if(deco === 'paper') style += `;clip-path:${chipClip(c.id || 'preview')}`;
+  return {cls, style, deco};
+}
+function cardHTML(c){
+  const art = c.image
+    ? `<div class="art" style="background-image:url(${c.image})"></div>`
+    : `<div class="art empty"></div>`;
+  const look = cardLook(c);
+  return `<div class="card-wrap" data-id="${c.id}">
+    <article class="${look.cls}" style="${look.style}">${decoHTML(look.deco)}${art}${infoHTML(c)}${stampHTML(c)}</article>
+  </div>`;
+}
+
+// textures for old paper and the postmark's faded ink (generated once)
+(() => {
+  const noise = `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'>
+    <filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/>
+      <feColorMatrix values='0 0 0 0 .42  0 0 0 0 .33  0 0 0 0 .2  0 0 0 .14 0'/></filter>
+    <filter id='s'><feTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='3' seed='4' stitchTiles='stitch'/>
+      <feColorMatrix values='0 0 0 0 .55  0 0 0 0 .42  0 0 0 0 .25  0 0 0 .6 -.28'/></filter>
+    <rect width='100%' height='100%' filter='url(#g)'/><rect width='100%' height='100%' filter='url(#s)'/></svg>`;
+  const ink = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'>
+    <filter id='m'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='2' stitchTiles='stitch'/>
+      <feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -3 0 0 0 2.4'/></filter>
+    <rect width='100%' height='100%' filter='url(#m)'/></svg>`;
+  const root = document.documentElement.style;
+  root.setProperty('--paper-noise', `url("data:image/svg+xml,${encodeURIComponent(noise)}")`);
+  root.setProperty('--ink-mask', `url("data:image/svg+xml,${encodeURIComponent(ink)}")`);
+})();
+
+/* ---------- album grid ---------- */
+const grid = $('grid');
+function renderGrid(){
+  const list = visibleCards();
+  grid.innerHTML = list.map(cardHTML).join('');
+  const empty = $('emptyState');
+  empty.hidden = list.length > 0;
+  empty.innerHTML = cards.length
+    ? '<span class="big">🔍</span>見つかりませんでした。<br>別の言葉で検索してみてください。'
+    : '<span class="big">🎞️ 📖</span>まだカードがありません。<br>右下の ＋ から追加しましょう。';
+  $('nAll').textContent = cards.length;
+  $('nMovie').textContent = cards.filter(c => c.type === 'movie').length;
+  $('nNovel').textContent = cards.filter(c => c.type === 'novel').length;
+}
+grid.addEventListener('click', e => {
+  const wrap = e.target.closest('.card-wrap');
+  if(!wrap) return;
+  const idx = visibleCards().findIndex(c => c.id === wrap.dataset.id);
+  openViewer(idx);
+});
+$('tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if(!tab) return;
+  filter = tab.dataset.filter;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+  renderGrid();
+});
+$('addBtn').addEventListener('click', () => openEditor(null));
+$('searchInput').addEventListener('input', e => { query = e.target.value; renderGrid(); });
+$('sortSelect').value = SORTS[sortBy] ? sortBy : 'seen';
+$('sortSelect').addEventListener('change', e => {
+  sortBy = e.target.value;
+  try{ localStorage.setItem('card-album-sort', sortBy); }catch(err){}
+  renderGrid();
+});
+
+/* ---------- viewer (horizontal carousel) ---------- */
+// Cards sit side by side; dragging rolls the row. The front card is flat,
+// cards to the sides turn inward and sink back a little.
+const viewer = $('viewer'), stage = $('stage'), carouselArea = $('carouselArea');
+let viewerList = [];
+let pos = 0;          // which card is in front (fractional while moving)
+let ring = null;      // {n, loop, w, unit, els, shades}
+let anim = null;      // requestAnimationFrame id
+
+const LOOP_MIN = 5;   // with this many cards or more the row wraps around endlessly
+const SIDE_MAX = 3.5; // cards further than this from the front are not drawn
+function mod(a, n){ return ((a % n) + n) % n; }
+function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
+function currentIndex(){ return viewerList.length ? mod(Math.round(pos), viewerList.length) : 0; }
+// signed distance of card i from the front
+function dist(i){ return ring.loop ? mod(i - pos + ring.n / 2, ring.n) - ring.n / 2 : i - pos; }
+
+function buildRing(){
+  const n = viewerList.length;
+  if(!n){ stage.innerHTML = ''; ring = null; $('viewerCount').textContent = ''; return; }
+  stage.innerHTML = viewerList.map(c => `<div class="slot">${cardHTML(c)}<div class="shade"></div></div>`).join('');
+  const w = stage.clientWidth;
+  const els = [...stage.querySelectorAll('.slot')];
+  ring = {n, loop:n >= LOOP_MIN, w, unit:w * 0.62, els, shades:els.map(el => el.querySelector('.shade'))};
+  layout();
+}
+function layout(){
+  if(!ring) return;
+  const {n, loop, w, unit, els, shades} = ring;
+  els.forEach((el, i) => {
+    const d = dist(i);
+    // fade out at the far ends (and where a looping row wraps around)
+    const edge = loop ? Math.min(n / 2, SIDE_MAX) : SIDE_MAX;
+    const opacity = clamp((edge - Math.abs(d)) * 2, 0, 1);
+    if(opacity <= 0){ el.style.visibility = 'hidden'; return; }
+    el.style.visibility = '';
+    el.style.opacity = opacity;
+    el.style.transform = `translateX(${d * unit}px) translateZ(${-Math.abs(d) * w * 0.35}px) rotateY(${-clamp(d, -1, 1) * 28}deg)`;
+    shades[i].style.opacity = Math.min(Math.abs(d), 3) * 0.17;
+  });
+  $('viewerCount').textContent = `${currentIndex() + 1} / ${n}`;
+}
+function stopAnim(){ if(anim){ cancelAnimationFrame(anim); anim = null; } }
+function spinTo(target){
+  stopAnim();
+  if(ring && !ring.loop) target = clamp(target, 0, ring.n - 1);
+  const from = pos, delta = target - from;
+  const dur = 380 + 70 * Math.min(Math.abs(delta), 5);
+  const t0 = performance.now();
+  const tick = now => {
+    const t = Math.min((now - t0) / dur, 1);
+    pos = from + delta * (1 - Math.pow(1 - t, 3));
+    layout();
+    if(t < 1){ anim = requestAnimationFrame(tick); }
+    else{ anim = null; pos = ring ? mod(target, ring.n) : 0; layout(); }
+  };
+  anim = requestAnimationFrame(tick);
+}
+function go(step){ if(ring && ring.n > 1) spinTo(Math.round(pos) + step); }
+
+function openViewer(index){
+  viewerList = visibleCards();
+  pos = index;
+  viewer.hidden = false;
+  buildRing();
+  pushLayer(() => { stopAnim(); viewer.hidden = true; stage.innerHTML = ''; ring = null; });
+}
+function refreshViewer(keepId){
+  if(viewer.hidden) return;
+  const cur = currentIndex();
+  viewerList = visibleCards();
+  const i = viewerList.findIndex(c => c.id === keepId);
+  stopAnim();
+  pos = i >= 0 ? i : Math.min(cur, Math.max(viewerList.length - 1, 0));
+  buildRing();
+}
+window.addEventListener('resize', () => { if(!viewer.hidden) buildRing(); });
+
+// drag to roll the row; a flick keeps it going for a few cards
+let spinDrag = null;
+carouselArea.addEventListener('pointerdown', e => {
+  if(!ring) return;
+  stopAnim();
+  const now = performance.now();
+  spinDrag = {x:e.clientX, startPos:pos, moved:false, slot:e.target.closest('.slot'),
+              lastX:e.clientX, lastT:now, prevX:e.clientX, prevT:now};
+  carouselArea.setPointerCapture(e.pointerId);
+});
+carouselArea.addEventListener('pointermove', e => {
+  if(!spinDrag) return;
+  const d = spinDrag, dx = e.clientX - d.x;
+  d.prevX = d.lastX; d.prevT = d.lastT;
+  d.lastX = e.clientX; d.lastT = performance.now();
+  if(!d.moved && Math.abs(dx) < 6) return;
+  if(ring.n < 2) return;
+  d.moved = true;
+  pos = d.startPos - dx / ring.unit;
+  if(!ring.loop) pos = clamp(pos, -0.35, ring.n - 0.65);  // a little give at both ends
+  layout();
+});
+function endSpin(cancelled){
+  if(!spinDrag) return;
+  const d = spinDrag;
+  spinDrag = null;
+  if(d.moved){
+    const v = cancelled ? 0 : (d.lastX - d.prevX) / Math.max(d.lastT - d.prevT, 1);  // px per ms
+    const extra = Math.max(-6, Math.min(6, -v * 300 / ring.unit));
+    spinTo(Math.round(pos + extra));
+  }else if(!cancelled && d.slot){
+    const i = ring.els.indexOf(d.slot);
+    const off = dist(i);
+    if(Math.abs(off) < 0.5) openSheet(viewerList[i].id);  // front card: open the memo
+    else spinTo(pos + off);                                // side card: bring it to the front
+  }else{
+    spinTo(Math.round(pos));
+  }
+}
+carouselArea.addEventListener('pointerup', () => endSpin(false));
+carouselArea.addEventListener('pointercancel', () => endSpin(true));
+
+$('prevBtn').addEventListener('click', () => go(-1));
+$('nextBtn').addEventListener('click', () => go(1));
+$('viewerClose').addEventListener('click', () => closeLayers());
+$('viewerEdit').addEventListener('click', () => {
+  const c = viewerList[currentIndex()];
+  if(c){ stopAnim(); openEditor(c); }
+});
+document.addEventListener('keydown', e => {
+  if(e.target.matches('input, textarea, select')) return;
+  if(e.key === 'Escape' && layers.length) closeLayers();
+  if(!viewer.hidden && sheetId === null && editor.hidden){
+    if(e.key === 'ArrowLeft') go(-1);
+    if(e.key === 'ArrowRight') go(1);
+  }
+});
+
+/* ---------- save a card as an image ---------- */
+// The card is rendered off screen and turned into a PNG with html-to-image. Only the
+// characters on the card are fetched from Google Fonts (text= subset) and embedded,
+// so the picture keeps its fonts without downloading whole Japanese font files.
+const shotSheet = $('shotSheet'), shotImg = $('shotImg'), shotSub = $('shotSub'), shotSave = $('shotSave');
+let shot = null;  // {token, url, name}
+
+const FONT_SPECS = new URL(document.querySelector('link[href*="fonts.googleapis.com/css2"]').href)
+  .searchParams.getAll('family');  // e.g. "Oswald:wght@400;600;700"
+function blobToDataURL(blob){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+async function fontCSSFor(c, el){
+  const families = new Set([...((FONTS[c.titleFont] || FONTS.anton)[0]).matchAll(/'([^']+)'/g)].map(m => m[1]));
+  [...labelFontOf(c)[0].matchAll(/'([^']+)'/g)].forEach(m => families.add(m[1]));  // labels
+  ['Oswald', 'Noto Sans JP'].forEach(n => families.add(n));  // postmark, fallback
+  const text = [...new Set(el.textContent.replace(/\s/g, '') + 'NOIMAGE')].join('');
+  let css = '';
+  for(const name of families){
+    const spec = FONT_SPECS.find(s => s.split(':')[0] === name);
+    if(!spec) continue;
+    const u = new URL('https://fonts.googleapis.com/css2');
+    u.searchParams.append('family', spec);
+    u.searchParams.set('text', text);
+    let part = await (await fetch(u)).text();
+    for(const m of [...part.matchAll(/url\((https:[^)]+)\)/g)]){
+      part = part.replace(m[1], await blobToDataURL(await (await fetch(m[1])).blob()));
+    }
+    css += part;
+  }
+  return css;
+}
+async function cardImage(c){
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-10000px;top:0;width:600px;';
+  holder.innerHTML = cardHTML(c);
+  document.body.appendChild(holder);
+  const el = holder.querySelector('.card');
+  try{
+    await document.fonts.ready;
+    let fontEmbedCSS = '';
+    try{ fontEmbedCSS = await fontCSSFor(c, el); }catch(err){ console.warn(err); }
+    const opts = Object.assign({pixelRatio:2}, fontEmbedCSS ? {fontEmbedCSS} : {skipFonts:true});
+    await htmlToImage.toPng(el, opts);  // first pass lets Safari finish loading images/fonts
+    return await htmlToImage.toPng(el, opts);
+  }finally{
+    holder.remove();
+  }
+}
+async function openShot(c){
+  const token = {};
+  shot = {token, url:'', name:`${(c.title || 'card').replace(/[\\/:*?"<>|]/g, '').trim() || 'card'}.png`};
+  shotImg.classList.remove('ready');
+  shotImg.removeAttribute('src');
+  shotSave.disabled = true;
+  shotSub.textContent = '画像を作成しています…';
+  shotSheet.classList.add('open');
+  backdrop.classList.add('open');
+  shotSheet.setAttribute('aria-hidden', 'false');
+  pushLayer(() => {
+    shot = null;
+    shotSheet.classList.remove('open');
+    backdrop.classList.remove('open');
+    shotSheet.setAttribute('aria-hidden', 'true');
+  });
+  try{
+    if(!window.htmlToImage) throw new Error('html-to-image not loaded');
+    const url = await cardImage(c);
+    if(!shot || shot.token !== token) return;  // closed meanwhile
+    shot.url = url;
+    shotImg.src = url;
+    shotImg.classList.add('ready');
+    shotSave.disabled = false;
+    shotSub.textContent = '「保存する」を押すか、画像を長押しして保存できます';
+  }catch(err){
+    console.error(err);
+    if(shot && shot.token === token) shotSub.textContent = '画像を作れませんでした。通信状況を確認して、もう一度お試しください';
+  }
+}
+shotSave.addEventListener('click', async () => {
+  if(!shot || !shot.url) return;
+  const file = new File([await (await fetch(shot.url)).blob()], shot.name, {type:'image/png'});
+  // phones: share sheet (→ "画像を保存" puts it in the photo library); computers: plain download
+  const phone = matchMedia('(pointer:coarse)').matches;
+  if(phone && navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file]}); return; }
+    catch(err){ if(err.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = shot.url;
+  a.download = shot.name;
+  a.click();
+  toast('画像を保存しました');
+});
+$('shotClose').addEventListener('click', () => closeLayers());
+$('viewerShot').addEventListener('click', () => {
+  const c = viewerList[currentIndex()];
+  if(c){ stopAnim(); openShot(c); }
+});
+
+/* ---------- memo sheet ---------- */
+const sheet = $('sheet'), backdrop = $('backdrop');
+const dateInput = $('dateInput'), memoInput = $('memoInput'), saveStatus = $('saveStatus');
+let sheetId = null, saveTimer = null;
+
+function openSheet(id){
+  const c = findCard(id);
+  if(!c) return;
+  sheetId = id;
+  $('sheetTitle').textContent = c.title;
+  $('sheetSub').textContent = c.type === 'novel'
+    ? [c.author, c.year].filter(Boolean).join(' ・ ')
+    : [c.director, c.year].filter(Boolean).join(' ・ ');
+  $('dateLabel').textContent = c.type === 'novel' ? '読んだ日' : '見た日';
+  dateInput.value = c.date || '';
+  memoInput.value = c.memo || '';
+  saveStatus.textContent = '';
+  sheet.classList.add('open');
+  backdrop.classList.add('open');
+  sheet.setAttribute('aria-hidden', 'false');
+  pushLayer(closeSheetUI);
+}
+async function saveSheet(){
+  clearTimeout(saveTimer);
+  const c = findCard(sheetId);
+  if(!c) return;
+  if(c.date === dateInput.value && c.memo === memoInput.value) return;
+  c.date = dateInput.value;
+  c.memo = memoInput.value;
+  c.updatedAt = Date.now();
+  await DB.put(c);
+  saveStatus.textContent = '保存しました';
+}
+function scheduleSave(){
+  saveStatus.textContent = '';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveSheet, 500);
+}
+function closeSheetUI(){
+  const id = sheetId;
+  saveSheet().then(() => { renderGrid(); refreshViewer(id); });
+  sheetId = null;
+  memoInput.blur();
+  dateInput.blur();
+  sheet.classList.remove('open');
+  backdrop.classList.remove('open');
+  sheet.setAttribute('aria-hidden', 'true');
+}
+memoInput.addEventListener('input', scheduleSave);
+dateInput.addEventListener('change', scheduleSave);
+$('todayBtn').addEventListener('click', () => {
+  const d = new Date();
+  dateInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  scheduleSave();
+});
+$('sheetClose').addEventListener('click', () => closeLayers());
+backdrop.addEventListener('click', () => closeLayers());
+
+/* ---------- editor ---------- */
+const editor = $('editor');
+const f = {
+  title: $('fTitle'), director: $('fDirector'), author: $('fAuthor'), translator: $('fTranslator'),
+  year: $('fYear'), genre: $('fGenre'), cast1: $('fCast1'), cast2: $('fCast2'), cast3: $('fCast3'),
+  studio: $('fStudio'), font: $('fFont'), labelFont: $('fLabelFont'),
+};
+const pvCard = $('pvCard'), pvArt = $('pvArt'), pvInfo = $('pvInfo');
+const swatchBox = $('swatches');
+const customColor = $('customColor');
+let editingId = null, edType = 'movie', edRating = 0, edColor = DEFAULT_COLOR;
+
+f.font.innerHTML = Object.entries(FONTS).map(([k, v]) => `<option value="${k}">${v[1]}</option>`).join('');
+f.labelFont.innerHTML = Object.entries(LABEL_FONTS).map(([k, v]) => `<option value="${k}">${v[2]}</option>`).join('');
+
+function collect(){
+  return {
+    type: edType,
+    title: f.title.value.trim(),
+    year: toHalfWidth(f.year.value.trim()),
+    rating: edRating,
+    director: f.director.value.trim(),
+    genre: genreValue(),
+    cast: [f.cast1.value.trim(), f.cast2.value.trim(), f.cast3.value.trim()].filter(Boolean),
+    studio: f.studio.value.trim(),
+    author: f.author.value.trim(),
+    translator: f.translator.value.trim(),
+    color: edColor,
+    titleFont: f.font.value,
+    labelFont: f.labelFont.value,
+    deco: edDeco,
+    dateStyle: edDateStyle,
+  };
+}
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function updatePreview(){
+  const d = collect();
+  const old = editingId ? findCard(editingId) : null;
+  d.id = editingId || 'preview';
+  d.date = (old && old.date) || todayStr();  // a sample date so the postmark can be previewed
+  const look = cardLook(d);
+  pvCard.className = look.cls;
+  pvCard.setAttribute('style', look.style);
+  $('pvDeco').innerHTML = decoHTML(look.deco);
+  pvInfo.innerHTML = infoHTML(d);
+  $('pvStamp').innerHTML = stampHTML(d);
+}
+
+/* design preset and date style */
+let edDeco = 'none', edDateStyle = 'stamp';
+const decoChips = $('decoChips');
+decoChips.innerHTML = DECOS.map(([k, name, only]) =>
+  `<button type="button" class="chip${only ? ` ${only}-only` : ''}" data-deco="${k}">${name}</button>`).join('');
+function renderDecoChips(){
+  decoChips.querySelectorAll('.chip').forEach(ch => ch.classList.toggle('on', ch.dataset.deco === edDeco));
+  document.querySelectorAll('#dateStyleSeg button').forEach(b => b.classList.toggle('active', b.dataset.style === edDateStyle));
+}
+decoChips.addEventListener('click', e => {
+  const ch = e.target.closest('.chip');
+  if(!ch) return;
+  edDeco = ch.dataset.deco;
+  renderDecoChips();
+  updatePreview();
+});
+$('dateStyleSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if(!b) return;
+  edDateStyle = b.dataset.style;
+  renderDecoChips();
+  updatePreview();
+});
+function setType(t){
+  edType = t;
+  editor.dataset.type = t;
+  document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('active', b.dataset.type === t));
+  updatePreview();
+}
+function setRating(v){
+  edRating = v;
+  document.querySelectorAll('#starInput button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) <= v));
+  updatePreview();
+}
+// same hues in two tones; switched with the パステル / 渋め toggle
+const CARD_COLORS = {
+  pastel: [
+    ['#b98990', 'ローズボルドー'], ['#c9c6bf', 'グレー'], ['#a9bfc4', 'くすんだ水色'], ['#b5c0a3', 'セージグリーン'],
+    ['#d3b2aa', 'ピンクベージュ'], ['#b9aec6', 'ラベンダー'], ['#e2d4a6', 'クリームイエロー'], ['#a8a8a8', 'ライトグレー'],
+  ],
+  muted: [
+    ['#6e2433', 'ボルドー'], ['#8f8a80', 'ストーン'], ['#5f7a80', 'スレートブルー'], ['#5f6b52', 'モスグリーン'],
+    ['#a5776c', 'テラコッタ'], ['#5e5268', 'オーベルジーヌ'], ['#a88d5c', 'マスタード'], ['#5a5a5a', 'チャコール'],
+  ],
+};
+let edTone = 'pastel';
+function toneOf(color){
+  return Object.keys(CARD_COLORS).find(t => CARD_COLORS[t].some(([c]) => c === color));
+}
+function renderSwatches(){
+  swatchBox.querySelectorAll('.swatch[data-color]').forEach(el => el.remove());
+  swatchBox.insertAdjacentHTML('afterbegin', CARD_COLORS[edTone].map(([c, name]) =>
+    `<button class="swatch" data-color="${c}" style="background:${c}" title="${name}"></button>`).join(''));
+  document.querySelectorAll('#toneSeg button').forEach(b => b.classList.toggle('active', b.dataset.tone === edTone));
+  markSwatch();
+}
+function markSwatch(){
+  const custom = !toneOf(edColor);
+  swatchBox.querySelectorAll('.swatch[data-color]').forEach(s =>
+    s.classList.toggle('selected', !custom && s.dataset.color === edColor));
+}
+function setColor(color){
+  edColor = color;
+  markSwatch();
+  updatePreview();
+}
+
+function openEditor(card){
+  editingId = card ? card.id : null;
+  $('editorTitle').textContent = card ? 'カードを編集' : '新しいカード';
+  $('deleteBtn').hidden = !card;
+  const c = card || {};
+  f.title.value = c.title || '';
+  f.year.value = c.year || '';
+  f.director.value = c.director || '';
+  setGenre(c.genre);
+  const cast = c.cast || [];
+  f.cast1.value = cast[0] || '';
+  f.cast2.value = cast[1] || '';
+  f.cast3.value = cast[2] || '';
+  f.studio.value = c.studio || '';
+  f.author.value = c.author || '';
+  f.translator.value = c.translator || '';
+  f.font.value = FONTS[c.titleFont] ? c.titleFont : 'anton';
+  f.labelFont.value = LABEL_FONTS[c.labelFont] ? c.labelFont : 'caslon';
+  edDeco = c.deco || 'none';
+  edDateStyle = c.dateStyle || (card ? 'text' : 'stamp');  // cards made before the postmark keep the text date
+  renderDecoChips();
+  customColor.value = c.color || DEFAULT_COLOR;
+  edColor = c.color || DEFAULT_COLOR;
+  // show the tone the card's color belongs to; a new card keeps the last tone used
+  if(card && toneOf(edColor)) edTone = toneOf(edColor);
+  renderSwatches();
+  setColor(edColor);
+  document.querySelectorAll('.field.invalid').forEach(el => el.classList.remove('invalid'));
+  setType(c.type || (filter === 'novel' ? 'novel' : 'movie'));
+  setRating(c.rating || 0);
+  editor.hidden = false;
+  $('editorBody').scrollTop = 0;
+  clearImage();
+  if(c.image) loadImage(c.image, false);
+  pushLayer(() => { editor.hidden = true; editingId = null; });
+}
+
+// full-width digits (２０２４) → half-width (2024)
+function toHalfWidth(s){ return s.replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)); }
+function fixYearInput(){
+  const v = toHalfWidth(f.year.value);
+  if(v !== f.year.value) f.year.value = v;
+}
+// wait until the Japanese IME has committed the text, otherwise the conversion is interrupted
+f.year.addEventListener('input', e => { if(!e.isComposing) fixYearInput(); });
+f.year.addEventListener('compositionend', () => { fixYearInput(); updatePreview(); });
+
+/* genre: pick from the main genres, plus free text under "その他" */
+const GENRES = ['ドラマ', 'コメディ', 'アクション', 'SF', 'ファンタジー', 'ホラー', 'サスペンス', 'ミステリー',
+  'ロマンス', 'アニメ', 'ドキュメンタリー', 'ミュージカル', '歴史', '青春'];
+const OTHER = '__other';
+const genreChips = $('genreChips');
+let edGenres = new Set(), edGenreOther = false;
+genreChips.innerHTML = GENRES.map(g => `<button type="button" class="chip" data-g="${g}">${g}</button>`).join('') +
+  `<button type="button" class="chip" data-g="${OTHER}">その他</button>`;
+
+function splitGenres(s){ return (s || '').split(/[,、，]/).map(x => x.trim()).filter(Boolean); }
+function renderChips(){
+  genreChips.querySelectorAll('.chip').forEach(ch =>
+    ch.classList.toggle('on', ch.dataset.g === OTHER ? edGenreOther : edGenres.has(ch.dataset.g)));
+  $('genreOtherWrap').hidden = !edGenreOther;
+}
+function genreValue(){
+  const list = GENRES.filter(g => edGenres.has(g));
+  if(edGenreOther) list.push(...splitGenres(f.genre.value));
+  return list.join(', ');
+}
+// genres not in the list (including ones typed before this picker existed) go to "その他"
+function setGenre(s){
+  const others = [];
+  edGenres = new Set();
+  splitGenres(s).forEach(g => GENRES.includes(g) ? edGenres.add(g) : others.push(g));
+  f.genre.value = others.join('、');
+  edGenreOther = others.length > 0;
+  renderChips();
+}
+genreChips.addEventListener('click', e => {
+  const ch = e.target.closest('.chip');
+  if(!ch) return;
+  const g = ch.dataset.g;
+  if(g === OTHER){
+    edGenreOther = !edGenreOther;
+    renderChips();
+    if(edGenreOther) f.genre.focus();
+  }else{
+    edGenres.has(g) ? edGenres.delete(g) : edGenres.add(g);
+    renderChips();
+  }
+  updatePreview();
+});
+
+[f.title, f.year, f.director, f.genre, f.cast1, f.cast2, f.cast3, f.studio, f.author, f.translator, f.font, f.labelFont]
+  .forEach(el => el.addEventListener('input', () => {
+    el.closest('.field').classList.remove('invalid');
+    updatePreview();
+  }));
+$('typeSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if(b) setType(b.dataset.type);
+});
+$('starInput').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if(!b) return;
+  setRating(Number(b.dataset.v));
+  b.closest('.field').classList.remove('invalid');
+});
+swatchBox.addEventListener('click', e => {
+  const sw = e.target.closest('.swatch[data-color]');
+  if(sw) setColor(sw.dataset.color);
+});
+customColor.addEventListener('input', () => setColor(customColor.value));
+$('toneSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if(!b) return;
+  edTone = b.dataset.tone;
+  renderSwatches();
+});
+
+/* image: pick, drag & zoom (same idea as movie_card_maker) */
+const imgInput = $('imgInput'), zoomRange = $('zoomRange');
+const img = {el:null, natW:0, natH:0, zoom:1, offX:0, offY:0, dirty:false, src:''};
+
+function clearImage(){
+  Object.assign(img, {el:null, natW:0, natH:0, zoom:1, offX:0, offY:0, dirty:false, src:''});
+  pvArt.style.backgroundImage = '';
+  pvArt.style.backgroundSize = '';
+  pvArt.style.backgroundPosition = '';
+  pvArt.classList.add('empty');
+  pvArt.classList.remove('has-photo');
+  $('cropControls').hidden = true;
+  $('removeImgBtn').hidden = true;
+  zoomRange.value = 100;
+}
+function loadImage(src, isNew){
+  const el = new Image();
+  el.onload = () => {
+    Object.assign(img, {el, natW:el.naturalWidth, natH:el.naturalHeight, zoom:1, dirty:isNew, src});
+    zoomRange.value = 100;
+    pvArt.style.backgroundImage = `url(${src})`;
+    pvArt.classList.remove('empty');
+    pvArt.classList.add('has-photo');
+    $('cropControls').hidden = false;
+    $('removeImgBtn').hidden = false;
+    const cw = pvArt.clientWidth;
+    const cover = Math.max(cw / img.natW, cw / img.natH);
+    img.offX = (cw - img.natW * cover) / 2;
+    img.offY = (cw - img.natH * cover) / 2;
+    applyBackground();
+  };
+  el.src = src;
+}
+function applyBackground(){
+  if(!img.natW) return;
+  const cw = pvArt.clientWidth;
+  const scale = Math.max(cw / img.natW, cw / img.natH) * img.zoom;
+  const bgW = img.natW * scale, bgH = img.natH * scale;
+  img.offX = Math.min(0, Math.max(cw - bgW, img.offX));
+  img.offY = Math.min(0, Math.max(cw - bgH, img.offY));
+  pvArt.style.backgroundSize = `${bgW}px ${bgH}px`;
+  pvArt.style.backgroundPosition = `${img.offX}px ${img.offY}px`;
+}
+function croppedImage(){
+  // render the visible square to a compact JPEG so storage stays small
+  const cw = pvArt.clientWidth;
+  const scale = Math.max(cw / img.natW, cw / img.natH) * img.zoom;
+  const size = 800;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  canvas.getContext('2d').drawImage(img.el, -img.offX / scale, -img.offY / scale, cw / scale, cw / scale, 0, 0, size, size);
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+$('pickImgBtn').addEventListener('click', () => imgInput.click());
+pvArt.addEventListener('click', () => { if(!img.natW) imgInput.click(); });
+$('removeImgBtn').addEventListener('click', clearImage);
+imgInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  imgInput.value = '';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => loadImage(ev.target.result, true);
+  reader.readAsDataURL(file);
+});
+zoomRange.addEventListener('input', () => {
+  img.zoom = Number(zoomRange.value) / 100;
+  img.dirty = true;
+  applyBackground();
+});
+let drag = null;
+pvArt.addEventListener('pointerdown', e => {
+  if(!img.natW) return;
+  drag = {x:e.clientX, y:e.clientY, offX:img.offX, offY:img.offY};
+  pvArt.setPointerCapture(e.pointerId);
+  pvArt.classList.add('dragging');
+});
+pvArt.addEventListener('pointermove', e => {
+  if(!drag) return;
+  img.offX = drag.offX + (e.clientX - drag.x);
+  img.offY = drag.offY + (e.clientY - drag.y);
+  img.dirty = true;
+  applyBackground();
+});
+['pointerup', 'pointercancel'].forEach(t => pvArt.addEventListener(t, () => {
+  drag = null;
+  pvArt.classList.remove('dragging');
+}));
+window.addEventListener('resize', applyBackground);
+
+function validate(d){
+  const bad = [];
+  if(!d.title) bad.push('title');
+  if(d.type === 'movie' && !d.director) bad.push('director');
+  if(d.type === 'novel' && !d.author) bad.push('author');
+  if(!/^\d{1,4}$/.test(d.year)) bad.push('year');
+  if(!d.rating) bad.push('rating');
+  document.querySelectorAll('.field[data-field]').forEach(el =>
+    el.classList.toggle('invalid', bad.includes(el.dataset.field)));
+  if(bad.length){
+    editor.querySelector(`.field[data-field="${bad[0]}"]`).scrollIntoView({behavior:'smooth', block:'center'});
+  }
+  return bad.length === 0;
+}
+
+$('editorSave').addEventListener('click', async () => {
+  const d = collect();
+  if(!validate(d)) return;
+  const old = editingId ? findCard(editingId) : null;
+  // keep only the fields that belong to the chosen type
+  if(d.type === 'movie'){ d.author = ''; d.translator = ''; }
+  else{ d.director = ''; d.genre = ''; d.cast = []; d.studio = ''; }
+  d.deco = decoOf(d);  // e.g. film chosen, then switched to a novel
+  const card = Object.assign({
+    id: old ? old.id : (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)),
+    createdAt: old ? old.createdAt : Date.now(),
+    date: old ? old.date : '',
+    memo: old ? old.memo : '',
+  }, d, {
+    image: !img.natW ? '' : (img.dirty ? croppedImage() : img.src),
+    updatedAt: Date.now(),
+  });
+  try{
+    await DB.put(card);
+  }catch(err){
+    console.error(err);
+    toast('保存に失敗しました');
+    return;
+  }
+  if(old) Object.assign(old, card); else cards.push(card);
+  renderGrid();
+  refreshViewer(card.id);
+  closeLayers();
+  toast(old ? '更新しました' : 'カードを追加しました');
+});
+$('editorCancel').addEventListener('click', () => closeLayers());
+$('deleteBtn').addEventListener('click', async () => {
+  const c = findCard(editingId);
+  if(!c || !confirm(`「${c.title}」を削除しますか？\nメモ・感想も消えます。`)) return;
+  await DB.del(c.id);
+  cards = cards.filter(x => x.id !== c.id);
+  renderGrid();
+  if(!viewer.hidden && visibleCards().length === 0){
+    closeLayers(2);  // editor + viewer
+  }else{
+    refreshViewer(null);
+    closeLayers();
+  }
+  toast('削除しました');
+});
+
+/* ---------- background color ---------- */
+// a per-device preference, so it lives in localStorage rather than with the cards
+// dark → mid → light
+const BG_COLORS = [
+  ['#0f0e0c', '墨'], ['#2b2b2b', 'チャコール'], ['#1e2429', 'スレート'], ['#121a2b', '濃紺'],
+  ['#0f2a2c', '深い青緑'], ['#13221c', '深緑'], ['#23251a', 'オリーブ'], ['#2a1f17', 'こげ茶'],
+  ['#2a1216', 'ボルドー'], ['#1f1626', '深い紫'],
+  ['#6f8796', 'ダスティブルー'], ['#8d9a83', 'セージ'], ['#c4a35a', 'マスタード'], ['#b68f8f', 'ローズ'],
+  ['#f3eee4', '生成り'], ['#f4ecd2', 'クリーム'], ['#e6dccb', 'サンド'], ['#e6e6e3', '薄いグレー'],
+  ['#dbe6ea', '淡い水色'], ['#dfe9df', 'ミント'], ['#e4dfec', 'ラベンダー'], ['#ecdcd8', 'くすみピンク'],
+];
+const BG_KEY = 'card-album-bg';
+const bgSheet = $('bgSheet'), bgSwatches = $('bgSwatches');
+bgSwatches.innerHTML = BG_COLORS.map(([c, name]) =>
+  `<button class="swatch" data-color="${c}" style="background:${c}" title="${name}"></button>`).join('') +
+  '<label class="swatch custom" title="カスタムカラー"><input type="color" id="bgCustom"></label>';
+
+function isLight(hex){
+  if(!/^#[0-9a-f]{6}$/i.test(hex || '')) return true;
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255 > 0.55;
+}
+function applyBg(hex){
+  const light = isLight(hex), s = document.documentElement.style;
+  s.setProperty('--app-bg', hex);
+  s.setProperty('--on-app', light ? '#17140f' : '#efe9df');
+  s.setProperty('--on-app-muted', light ? 'rgba(23,20,15,.55)' : '#7d766a');
+  s.setProperty('--app-line', light ? 'rgba(23,20,15,.14)' : 'rgba(255,255,255,.08)');
+  // veil over a photo background so the text on it stays readable
+  s.setProperty('--app-scrim', light ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.35)');
+  document.querySelector('meta[name="theme-color"]').content = hex;
+  const photo = document.body.classList.contains('has-bg-image');
+  bgSwatches.querySelectorAll('.swatch[data-color]').forEach(sw => sw.classList.toggle('selected', !photo && sw.dataset.color === hex));
+  $('bgCustom').value = hex;
+}
+function setBg(hex){
+  applyBgImage(null);
+  try{ localStorage.removeItem(BG_IMG_KEY); }catch(err){}
+  applyBg(hex);
+  try{ localStorage.setItem(BG_KEY, hex); }catch(err){}
+}
+
+// photo background: shrunk to a JPEG and kept on this device; its average color sets the text tone
+const BG_IMG_KEY = 'card-album-bg-image';
+function applyBgImage(photo){
+  const s = document.documentElement.style;
+  if(photo){
+    s.setProperty('--app-bg-image', `url("${photo.img}")`);
+    document.body.classList.add('has-bg-image');
+    applyBg(photo.avg);
+  }else{
+    s.removeProperty('--app-bg-image');
+    document.body.classList.remove('has-bg-image');
+  }
+  $('bgImgRemove').hidden = !photo;
+}
+function averageColor(el){
+  const c = document.createElement('canvas');
+  c.width = c.height = 8;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(el, 0, 0, 8, 8);
+  const px = ctx.getImageData(0, 0, 8, 8).data;
+  let r = 0, g = 0, b = 0;
+  for(let i = 0; i < px.length; i += 4){ r += px[i]; g += px[i + 1]; b += px[i + 2]; }
+  const n = px.length / 4, hex = v => Math.round(v / n).toString(16).padStart(2, '0');
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}
+$('bgImgBtn').addEventListener('click', () => $('bgImgInput').click());
+$('bgImgInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const el = new Image();
+    el.onload = () => {
+      const scale = Math.min(1, 1600 / Math.max(el.naturalWidth, el.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(el.naturalWidth * scale);
+      canvas.height = Math.round(el.naturalHeight * scale);
+      canvas.getContext('2d').drawImage(el, 0, 0, canvas.width, canvas.height);
+      const photo = {img:canvas.toDataURL('image/jpeg', 0.8), avg:averageColor(canvas)};
+      applyBgImage(photo);
+      try{
+        localStorage.setItem(BG_IMG_KEY, JSON.stringify(photo));
+        toast('背景を写真にしました');
+      }catch(err){
+        toast('写真が大きすぎて保存できませんでした（今だけ表示します）');
+      }
+    };
+    el.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+$('bgImgRemove').addEventListener('click', () => {
+  applyBgImage(null);
+  try{ localStorage.removeItem(BG_IMG_KEY); }catch(err){}
+  let saved = null;
+  try{ saved = localStorage.getItem(BG_KEY); }catch(err){}
+  applyBg(/^#[0-9a-f]{6}$/i.test(saved || '') ? saved : BG_COLORS[0][0]);
+});
+bgSwatches.addEventListener('click', e => {
+  const sw = e.target.closest('.swatch[data-color]');
+  if(sw) setBg(sw.dataset.color);
+});
+$('bgCustom').addEventListener('input', e => setBg(e.target.value));
+$('bgBtn').addEventListener('click', () => {
+  menu.hidden = true;
+  bgSheet.classList.add('open');
+  backdrop.classList.add('open');
+  bgSheet.setAttribute('aria-hidden', 'false');
+  pushLayer(() => {
+    bgSheet.classList.remove('open');
+    backdrop.classList.remove('open');
+    bgSheet.setAttribute('aria-hidden', 'true');
+  });
+});
+$('bgClose').addEventListener('click', () => closeLayers());
+(() => {
+  let saved = null, photo = null;
+  try{
+    saved = localStorage.getItem(BG_KEY);
+    photo = JSON.parse(localStorage.getItem(BG_IMG_KEY) || 'null');
+  }catch(err){}
+  applyBg(/^#[0-9a-f]{6}$/i.test(saved || '') ? saved : BG_COLORS[0][0]);
+  if(photo && photo.img && /^#[0-9a-f]{6}$/i.test(photo.avg || '')) applyBgImage(photo);
+})();
+
+/* ---------- menu: export / import ---------- */
+const menu = $('menu');
+$('menuBtn').addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; });
+document.addEventListener('click', e => { if(!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
+
+$('exportBtn').addEventListener('click', () => {
+  menu.hidden = true;
+  // device settings (background color / photo, sort order) travel with the backup too
+  const settings = {};
+  try{
+    settings.bg = localStorage.getItem(BG_KEY);
+    settings.bgImage = JSON.parse(localStorage.getItem(BG_IMG_KEY) || 'null');
+    settings.sort = localStorage.getItem('card-album-sort');
+  }catch(err){}
+  const data = JSON.stringify({app:'card-album', version:1, exportedAt:new Date().toISOString(), settings, cards}, null, 1);
+  const a = document.createElement('a');
+  const d = new Date();
+  a.download = `card-album-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.json`;
+  a.href = URL.createObjectURL(new Blob([data], {type:'application/json'}));
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`${cards.length}件を書き出しました`);
+});
+function applyImportedSettings(s){
+  if(!s) return;
+  const hex = /^#[0-9a-f]{6}$/i;
+  if(s.bg && hex.test(s.bg)) setBg(s.bg);
+  const photo = s.bgImage;
+  if(photo && typeof photo.img === 'string' && photo.img.startsWith('data:image/') && hex.test(photo.avg || '')){
+    applyBgImage(photo);
+    try{ localStorage.setItem(BG_IMG_KEY, JSON.stringify(photo)); }catch(err){}
+  }
+  if(s.sort && SORTS[s.sort]){
+    sortBy = s.sort;
+    $('sortSelect').value = sortBy;
+    try{ localStorage.setItem('card-album-sort', sortBy); }catch(err){}
+  }
+}
+$('importBtn').addEventListener('click', () => { menu.hidden = true; $('importInput').click(); });
+$('importInput').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    const data = JSON.parse(await file.text());
+    const list = (data.cards || []).filter(c => c && c.id && c.title && (c.type === 'movie' || c.type === 'novel'));
+    if(!list.length){ toast('読み込めるカードがありませんでした'); return; }
+    await DB.putMany(list);
+    cards = await DB.all();
+    applyImportedSettings(data.settings);
+    renderGrid();
+    toast(`${list.length}件を読み込みました`);
+  }catch(err){
+    console.error(err);
+    toast('ファイルを読み込めませんでした');
+  }
+});
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+/* ---------- start ---------- */
+(async () => {
+  try{
+    await DB.open();
+    cards = await DB.all();
+    const recolored = cards.filter(c => OLD_COLORS[c.color]);
+    recolored.forEach(c => { c.color = OLD_COLORS[c.color]; });
+    if(recolored.length) await DB.putMany(recolored);
+    if(navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  }catch(err){
+    console.error(err);
+    toast('データを読み込めませんでした');
+  }
+  renderGrid();
+})();
+</script>
+</body>
+</html>
