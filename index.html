@@ -800,6 +800,10 @@
   <div class="sheet-handle"></div>
   <h2>カードを画像で保存</h2>
   <p class="sub" id="shotSub"></p>
+  <div class="seg small" id="shotSeg">
+    <button type="button" data-mode="card">カードだけ</button>
+    <button type="button" data-mode="bg">背景あり</button>
+  </div>
   <div class="shot-preview"><img id="shotImg" alt=""></div>
   <div class="sheet-foot">
     <button class="text-btn" id="shotClose">閉じる</button>
@@ -1534,30 +1538,68 @@ async function fontCSSFor(c, el){
   }
   return css;
 }
-async function cardImage(c){
+// withBg: the card sits on the current app background (color or photo) with a margin around it
+async function cardImage(c, withBg){
   const holder = document.createElement('div');
-  holder.style.cssText = 'position:fixed;left:-10000px;top:0;width:600px;';
-  holder.innerHTML = cardHTML(c);
+  holder.style.cssText = 'position:fixed;left:-10000px;top:0;';
+  holder.innerHTML = `<div><div style="width:600px">${cardHTML(c)}</div></div>`;
+  const frame = holder.firstElementChild;
+  if(withBg){
+    const root = document.documentElement.style;
+    frame.style.cssText = `padding:90px 80px;background:${root.getPropertyValue('--app-bg') || '#0f0e0c'}`;
+    const photo = root.getPropertyValue('--app-bg-image');
+    if(photo) Object.assign(frame.style, {backgroundImage:photo, backgroundSize:'cover', backgroundPosition:'center'});
+  }
   document.body.appendChild(holder);
   const el = holder.querySelector('.card');
+  if(withBg) el.style.boxShadow = '0 14px 36px rgba(0,0,0,.4)';
+  const target = withBg ? frame : el;
   try{
     await document.fonts.ready;
     let fontEmbedCSS = '';
     try{ fontEmbedCSS = await fontCSSFor(c, el); }catch(err){ console.warn(err); }
     const opts = Object.assign({pixelRatio:2}, fontEmbedCSS ? {fontEmbedCSS} : {skipFonts:true});
-    await htmlToImage.toPng(el, opts);  // first pass lets Safari finish loading images/fonts
-    return await htmlToImage.toPng(el, opts);
+    await htmlToImage.toPng(target, opts);  // first pass lets Safari finish loading images/fonts
+    return await htmlToImage.toPng(target, opts);
   }finally{
     holder.remove();
   }
 }
-async function openShot(c){
-  const token = {};
-  shot = {token, url:'', name:`${(c.title || 'card').replace(/[\\/:*?"<>|]/g, '').trim() || 'card'}.png`};
+const SHOT_MODE_KEY = 'card-album-shot-mode';
+let shotMode = 'card';
+try{ shotMode = localStorage.getItem(SHOT_MODE_KEY) === 'bg' ? 'bg' : 'card'; }catch(err){}
+async function renderShot(){
+  if(!shot) return;
+  const {token, card} = shot, mode = shotMode;
+  $('shotSeg').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   shotImg.classList.remove('ready');
   shotImg.removeAttribute('src');
   shotSave.disabled = true;
   shotSub.textContent = '画像を作成しています…';
+  try{
+    if(!window.htmlToImage) throw new Error('html-to-image not loaded');
+    const url = shot.urls[mode] || await cardImage(card, mode === 'bg');
+    if(!shot || shot.token !== token || shotMode !== mode) return;  // closed or switched meanwhile
+    shot.urls[mode] = url;
+    shotImg.src = url;
+    shotImg.classList.add('ready');
+    shotSave.disabled = false;
+    shotSub.textContent = '「保存する」を押すか、画像を長押しして保存できます';
+  }catch(err){
+    console.error(err);
+    if(shot && shot.token === token && shotMode === mode) shotSub.textContent = '画像を作れませんでした。通信状況を確認して、もう一度お試しください';
+  }
+}
+$('shotSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-mode]');
+  if(!b || b.dataset.mode === shotMode) return;
+  shotMode = b.dataset.mode;
+  try{ localStorage.setItem(SHOT_MODE_KEY, shotMode); }catch(err){}
+  renderShot();
+});
+async function openShot(c){
+  const token = {};
+  shot = {token, card:c, urls:{}, name:(c.title || 'card').replace(/[\\/:*?"<>|]/g, '').trim() || 'card'};
   shotSheet.classList.add('open');
   backdrop.classList.add('open');
   shotSheet.setAttribute('aria-hidden', 'false');
@@ -1567,23 +1609,13 @@ async function openShot(c){
     backdrop.classList.remove('open');
     shotSheet.setAttribute('aria-hidden', 'true');
   });
-  try{
-    if(!window.htmlToImage) throw new Error('html-to-image not loaded');
-    const url = await cardImage(c);
-    if(!shot || shot.token !== token) return;  // closed meanwhile
-    shot.url = url;
-    shotImg.src = url;
-    shotImg.classList.add('ready');
-    shotSave.disabled = false;
-    shotSub.textContent = '「保存する」を押すか、画像を長押しして保存できます';
-  }catch(err){
-    console.error(err);
-    if(shot && shot.token === token) shotSub.textContent = '画像を作れませんでした。通信状況を確認して、もう一度お試しください';
-  }
+  renderShot();
 }
 shotSave.addEventListener('click', async () => {
-  if(!shot || !shot.url) return;
-  const file = new File([await (await fetch(shot.url)).blob()], shot.name, {type:'image/png'});
+  const url = shot && shot.urls[shotMode];
+  if(!url) return;
+  const name = shot.name + (shotMode === 'bg' ? '_背景あり' : '') + '.png';
+  const file = new File([await (await fetch(url)).blob()], name, {type:'image/png'});
   // phones: share sheet (→ "画像を保存" puts it in the photo library); computers: plain download
   const phone = matchMedia('(pointer:coarse)').matches;
   if(phone && navigator.canShare && navigator.canShare({files:[file]})){
@@ -1591,8 +1623,8 @@ shotSave.addEventListener('click', async () => {
     catch(err){ if(err.name === 'AbortError') return; }
   }
   const a = document.createElement('a');
-  a.href = shot.url;
-  a.download = shot.name;
+  a.href = url;
+  a.download = name;
   a.click();
   toast('画像を保存しました');
 });
