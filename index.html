@@ -247,7 +247,7 @@
   /* every row has a fixed height, so empty items keep their space */
   .title-row{
     flex-shrink:0;
-    height:19cqw;
+    height:20cqw;
     display:flex;
     align-items:flex-end;
     justify-content:space-between;
@@ -261,7 +261,7 @@
   .title-row .t{
     font-weight:900;
     font-size:8cqw;
-    line-height:1.03;
+    line-height:1.15;
     letter-spacing:.01em;
     word-break:break-word;
     min-width:0;
@@ -269,6 +269,9 @@
     -webkit-line-clamp:2;
     -webkit-box-orient:vertical;
     overflow:hidden;
+    /* room below the last line so descenders (g, y, p) are not cut off; the negative margin keeps the layout */
+    padding-bottom:.1em;
+    margin-bottom:-.1em;
   }
   .title-row .y{
     font-weight:500;
