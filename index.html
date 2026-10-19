@@ -517,6 +517,53 @@
   }
   .save-status{font-size:12px;color:var(--dim);}
   .sheet-foot .btn{width:auto;padding:12px 28px;}
+  /* the memo sheet takes the color and decoration of its card */
+  #sheet.themed{
+    --ink:#17140f;--ink-rgb:23,20,15;
+    background:var(--memo-bg);
+    color:var(--ink);
+    isolation:isolate;
+  }
+  #sheet.themed.dark{--ink:#f3ece0;--ink-rgb:243,236,224;}
+  #sheet.themed.deco-film{padding-left:34px;padding-right:34px;}
+  #sheet.themed > :not(.memo-deco){position:relative;z-index:1;}
+  #sheet.themed .sheet-handle{background:rgba(var(--ink-rgb),.3);}
+  #sheet.themed .sub, #sheet.themed .save-status{color:rgba(var(--ink-rgb),.6);}
+  #sheet.themed .field label{color:rgba(var(--ink-rgb),.72);}
+  #sheet.themed input, #sheet.themed textarea{
+    background:rgba(var(--ink-rgb),.07);
+    border-color:rgba(var(--ink-rgb),.25);
+    color:var(--ink);
+    color-scheme:light;
+  }
+  #sheet.themed.dark input, #sheet.themed.dark textarea{color-scheme:dark;}
+  #sheet.themed input:focus, #sheet.themed textarea:focus{border-color:var(--accent);}
+  #sheet.themed textarea::placeholder{color:rgba(var(--ink-rgb),.4);}
+  #sheet.themed .text-btn{color:var(--ink);border-color:rgba(var(--ink-rgb),.3);}
+  .memo-deco{position:absolute;inset:0;z-index:0;pointer-events:none;}
+  .memo-deco::before, .memo-deco::after{content:'';position:absolute;}
+  .memo-deco[data-deco="frame-round"]::before,
+  .memo-deco[data-deco="frame-cut"]::before{inset:8px;border:1.4px solid rgba(255,255,255,.9);border-radius:12px 12px 4px 4px;}
+  .memo-deco[data-deco="frame-cut"]::before{border-radius:0;}
+  .memo-deco[data-deco="arabesque"]::before{inset:10px;border:1px solid rgba(var(--ink-rgb),.55);}
+  .memo-deco[data-deco="cover"]::before{inset:8px;border:.9px solid rgba(255,255,255,.9);}
+  .memo-deco[data-deco="cover"]::after{inset:13px;border:.7px solid rgba(255,255,255,.9);}
+  .memo-deco[data-deco="film"]::before,
+  .memo-deco[data-deco="film"]::after{
+    top:0;bottom:0;width:18px;
+    background:#111 linear-gradient(#efe9df 0 9px, transparent 9px) 5px 6px / 8px 16px repeat-y;
+  }
+  .memo-deco[data-deco="film"]::before{left:0;}
+  .memo-deco[data-deco="film"]::after{right:0;}
+  .memo-deco[data-deco="paper"]{
+    background-image:var(--paper-noise);
+    background-size:400px 400px;
+    mix-blend-mode:multiply;
+    box-shadow:inset 0 0 40px rgba(120,85,40,.16);
+  }
+  .memo-deco .orn{position:absolute;left:50%;width:84px;height:24px;overflow:visible;}
+  .memo-deco .orn.top{top:-2px;transform:translateX(-50%);}
+  .memo-deco .orn.bottom{bottom:-2px;transform:translateX(-50%) rotate(180deg);}
 
   /* ---------- editor ---------- */
   .editor{
@@ -769,7 +816,7 @@
   </div>
   <button class="nav-btn prev" id="prevBtn" aria-label="前へ">‹</button>
   <button class="nav-btn next" id="nextBtn" aria-label="次へ">›</button>
-  <p class="viewer-hint">左右になぞって回す ・ 正面のカードをタップでメモ</p>
+  <p class="viewer-hint">左右になぞって回す ・ 上にスワイプでメモ</p>
 </div>
 
 <!-- memo sheet -->
@@ -1169,12 +1216,14 @@ function frameCutSVG(){
   const pts = [[d + c, d], [W - d - c, d], [W - d, d + c], [W - d, H - d - c], [W - d - c, H - d], [d + c, H - d], [d, H - d - c], [d, d + c]];
   return svgBox(`<polygon points="${pts.map(p => p.join(',')).join(' ')}" stroke="rgba(255,255,255,.9)" stroke-width="1.4"/>`);
 }
+// one simple scroll, mirrored (centred on 0,0); a patch of card color hides the border line behind it
+const ARABESQUE_HALF = '<path d="M4 0 C9 -6 16 -6 20 -1 C24 4 31 5 35 0 C38 -4 35 -8 31 -6 C28 -4 30 -1 33 -1"/>' +
+  '<path d="M12 -4 C11 -9 16 -11 18 -8"/><path d="M25 3 C25 8 30 9 31 6"/>';
+const ARABESQUE_ORN = `<rect x="-40" y="-11" width="80" height="22" style="fill:var(--card-bg)" stroke="none"/>` +
+  `${ARABESQUE_HALF}<g transform="scale(-1,1)">${ARABESQUE_HALF}</g><path d="M0 -6 C3 -2 3 2 0 6 C-3 2 -3 -2 0 -6Z"/>`;
 function arabesqueSVG(){
-  // one simple scroll, mirrored, then placed on the middle of each side
-  const half = '<path d="M4 0 C9 -6 16 -6 20 -1 C24 4 31 5 35 0 C38 -4 35 -8 31 -6 C28 -4 30 -1 33 -1"/>' +
-    '<path d="M12 -4 C11 -9 16 -11 18 -8"/><path d="M25 3 C25 8 30 9 31 6"/>';
-  const orn = `<rect x="-40" y="-11" width="80" height="22" style="fill:var(--card-bg)" stroke="none"/>` +
-    `${half}<g transform="scale(-1,1)">${half}</g><path d="M0 -6 C3 -2 3 2 0 6 C-3 2 -3 -2 0 -6Z"/>`;
+  // the ornament placed on the middle of each side
+  const orn = ARABESQUE_ORN;
   const place = ['translate(150,9) scale(.8)', 'translate(291,250) rotate(90) scale(.8)',
     'translate(150,491) rotate(180) scale(.8)', 'translate(9,250) rotate(-90) scale(.8)'];
   return svgBox(`<g style="stroke:rgba(var(--ink-rgb),.55)" stroke-width="1" stroke-linecap="round">
@@ -1449,16 +1498,26 @@ carouselArea.addEventListener('pointerdown', e => {
   if(!ring) return;
   stopAnim();
   const now = performance.now();
-  spinDrag = {x:e.clientX, startPos:pos, moved:false, slot:e.target.closest('.slot'),
+  spinDrag = {x:e.clientX, y:e.clientY, axis:null, dy:0, startPos:pos, moved:false, slot:e.target.closest('.slot'),
               lastX:e.clientX, lastT:now, prevX:e.clientX, prevT:now};
   carouselArea.setPointerCapture(e.pointerId);
 });
 carouselArea.addEventListener('pointermove', e => {
   if(!spinDrag) return;
-  const d = spinDrag, dx = e.clientX - d.x;
+  const d = spinDrag, dx = e.clientX - d.x, dy = e.clientY - d.y;
   d.prevX = d.lastX; d.prevT = d.lastT;
   d.lastX = e.clientX; d.lastT = performance.now();
-  if(!d.moved && Math.abs(dx) < 6) return;
+  if(!d.axis){
+    if(Math.max(Math.abs(dx), Math.abs(dy)) < 6) return;
+    d.axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
+  }
+  if(d.axis === 'y'){
+    // swipe up: the row lifts a little with the finger, then the memo opens on release
+    d.moved = true;
+    d.dy = dy;
+    stage.style.translate = `0 ${Math.max(-40, Math.min(0, dy * .35))}px`;
+    return;
+  }
   if(ring.n < 2) return;
   d.moved = true;
   pos = d.startPos - dx / ring.unit;
@@ -1469,15 +1528,18 @@ function endSpin(cancelled){
   if(!spinDrag) return;
   const d = spinDrag;
   spinDrag = null;
-  if(d.moved){
+  if(d.axis === 'y'){
+    stage.style.translate = '';
+    const c = viewerList[currentIndex()];
+    if(!cancelled && d.dy < -40 && c) openSheet(c.id);
+  }else if(d.moved){
     const v = cancelled ? 0 : (d.lastX - d.prevX) / Math.max(d.lastT - d.prevT, 1);  // px per ms
     const extra = Math.max(-6, Math.min(6, -v * 300 / ring.unit));
     spinTo(Math.round(pos + extra));
   }else if(!cancelled && d.slot){
     const i = ring.els.indexOf(d.slot);
     const off = dist(i);
-    if(Math.abs(off) < 0.5) openSheet(viewerList[i].id);  // front card: open the memo
-    else spinTo(pos + off);                                // side card: bring it to the front
+    if(Math.abs(off) >= 0.5) spinTo(pos + off);  // side card: bring it to the front
   }else{
     spinTo(Math.round(pos));
   }
@@ -1651,10 +1713,27 @@ function openSheet(id){
   dateInput.value = c.date || '';
   memoInput.value = c.memo || '';
   saveStatus.textContent = '';
+  themeSheet(c);
   sheet.classList.add('open');
   backdrop.classList.add('open');
   sheet.setAttribute('aria-hidden', 'false');
   pushLayer(closeSheetUI);
+}
+function themeSheet(c){
+  const color = c.color || DEFAULT_COLOR, deco = decoOf(c);
+  sheet.className = 'sheet themed' + (isLight(color) ? '' : ' dark') + ` deco-${deco}`;
+  sheet.style.setProperty('--memo-bg', color);
+  sheet.style.setProperty('--card-bg', color);
+  let layer = sheet.querySelector('.memo-deco');
+  if(!layer){
+    layer = document.createElement('div');
+    layer.className = 'memo-deco';
+    sheet.prepend(layer);
+  }
+  layer.dataset.deco = deco;
+  const orn = pos => `<svg class="orn ${pos}" viewBox="-42 -12 84 24" fill="none" stroke-width="1" stroke-linecap="round"
+    style="stroke:rgba(var(--ink-rgb),.55)">${ARABESQUE_ORN}</svg>`;
+  layer.innerHTML = deco === 'arabesque' ? orn('top') + orn('bottom') : '';
 }
 async function saveSheet(){
   clearTimeout(saveTimer);
