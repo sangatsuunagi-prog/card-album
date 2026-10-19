@@ -126,10 +126,24 @@
     max-width:960px;
     margin:12px auto 0;
   }
-  /* search, sort and the ⋯ menu stay tucked away until the list is pulled down */
-  .topbar .toolbar, .topbar #menuBtn{transition:max-height .25s, margin .25s, opacity .2s, visibility .2s;}
-  .topbar .toolbar{max-height:60px;}
-  .topbar:not(.tools-open) .toolbar{max-height:0;margin-top:0;opacity:0;visibility:hidden;overflow:hidden;}
+  /* search, sort and the ⋯ menu stay tucked away until the list is pulled down. The search bar
+     drops down over the list instead of pushing it, so showing/hiding never moves the page. */
+  .topbar .toolbar{
+    position:absolute;
+    left:0;
+    right:0;
+    top:100%;
+    margin:0;
+    padding:10px 16px;
+    background:var(--app-bg);
+    background:color-mix(in srgb, var(--app-bg) 92%, transparent);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--app-line);
+    transition:opacity .2s, transform .2s, visibility .2s;
+  }
+  .topbar #menuBtn{transition:opacity .2s, visibility .2s;}
+  .topbar:not(.tools-open) .toolbar{opacity:0;visibility:hidden;transform:translateY(-8px);}
   .topbar:not(.tools-open) #menuBtn{opacity:0;visibility:hidden;}
   .toolbar input, .toolbar select{
     background:var(--app-line);
@@ -1421,36 +1435,38 @@ $('tabs').addEventListener('click', e => {
 $('addBtn').addEventListener('click', () => openEditor(null));
 $('searchInput').addEventListener('input', e => { query = e.target.value; renderGrid(); });
 
-// pull the list down (or scroll back up) to show search / sort / ⋯; scrolling down tucks them away
-// again, unless a search is in progress
+// swipe down on the list to show search / sort / ⋯; they tuck away again after 3 seconds,
+// but stay while the search box is in use or has text, or the menu is open
 const topbar = document.querySelector('.topbar');
-function showTools(open){
-  open = open || !!$('searchInput').value || document.activeElement === $('searchInput');
-  topbar.classList.toggle('tools-open', open);
-  if(!open) $('menu').hidden = true;
+const TOOLS_MS = 3000;
+let toolsTimer = null, touchY = null;
+function toolsBusy(){
+  const search = $('searchInput');
+  return !!search.value || document.activeElement === search ||
+    document.activeElement === $('sortSelect') || !$('menu').hidden;
 }
-const canScroll = () => document.documentElement.scrollHeight > innerHeight + 4;
-let lastScrollY = scrollY, touchY = null;
-addEventListener('scroll', () => {
-  const y = scrollY, d = y - lastScrollY;
-  if(d < -6) showTools(true);
-  else if(d > 6 && y > 80) showTools(false);
-  lastScrollY = y;
-}, {passive:true});
-// at the top the page cannot scroll any further, so watch the finger itself
-addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, {passive:true});
+function hideToolsLater(){
+  clearTimeout(toolsTimer);
+  toolsTimer = setTimeout(() => {
+    if(toolsBusy()) return hideToolsLater();
+    topbar.classList.remove('tools-open');
+  }, TOOLS_MS);
+}
+function showTools(){
+  topbar.classList.add('tools-open');
+  hideToolsLater();
+}
+// touching the bar itself keeps it up for another 3 seconds
+topbar.addEventListener('pointerdown', () => { if(topbar.classList.contains('tools-open')) hideToolsLater(); });
+topbar.addEventListener('input', hideToolsLater);
+const onList = e => !e.target.closest('.viewer, .editor, .sheet, .backdrop');
+addEventListener('touchstart', e => { touchY = onList(e) ? e.touches[0].clientY : null; }, {passive:true});
 addEventListener('touchmove', e => {
-  if(touchY === null || scrollY > 0) return;
-  const dy = e.touches[0].clientY - touchY;
-  if(dy > 30){ showTools(true); touchY = null; }
-  else if(dy < -30 && !canScroll()){ showTools(false); touchY = null; }
+  if(touchY === null) return;
+  if(e.touches[0].clientY - touchY > 30){ showTools(); touchY = null; }
 }, {passive:true});
 addEventListener('touchend', () => { touchY = null; }, {passive:true});
-addEventListener('wheel', e => {
-  if(scrollY > 0) return;
-  if(e.deltaY < 0) showTools(true);
-  else if(e.deltaY > 0 && !canScroll()) showTools(false);
-}, {passive:true});
+addEventListener('wheel', e => { if(e.deltaY < 0 && onList(e)) showTools(); }, {passive:true});
 $('sortSelect').value = SORTS[sortBy] ? sortBy : 'seen';
 $('sortSelect').addEventListener('change', e => {
   sortBy = e.target.value;
