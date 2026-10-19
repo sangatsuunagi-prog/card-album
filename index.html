@@ -110,20 +110,27 @@
     background:none;
     border:none;
     color:var(--on-app-muted);
-    font-size:14px;
-    font-weight:700;
+    font-family:'Zen Antique', serif;
+    font-size:13px;
+    font-weight:400;
+    letter-spacing:.06em;
     padding:10px 0 12px;
     border-bottom:2px solid transparent;
     cursor:pointer;
   }
   .tab.active{color:var(--on-app);border-bottom-color:var(--accent);}
-  .tab .n{font-weight:400;font-size:12px;margin-left:4px;color:var(--on-app-muted);}
+  .tab .n{font-size:11px;margin-left:4px;color:var(--on-app-muted);}
   .toolbar{
     display:flex;
     gap:8px;
     max-width:960px;
     margin:12px auto 0;
   }
+  /* search, sort and the ⋯ menu stay tucked away until the list is pulled down */
+  .topbar .toolbar, .topbar #menuBtn{transition:max-height .25s, margin .25s, opacity .2s, visibility .2s;}
+  .topbar .toolbar{max-height:60px;}
+  .topbar:not(.tools-open) .toolbar{max-height:0;margin-top:0;opacity:0;visibility:hidden;overflow:hidden;}
+  .topbar:not(.tools-open) #menuBtn{opacity:0;visibility:hidden;}
   .toolbar input, .toolbar select{
     background:var(--app-line);
     border:1px solid var(--app-line);
@@ -1413,6 +1420,37 @@ $('tabs').addEventListener('click', e => {
 });
 $('addBtn').addEventListener('click', () => openEditor(null));
 $('searchInput').addEventListener('input', e => { query = e.target.value; renderGrid(); });
+
+// pull the list down (or scroll back up) to show search / sort / ⋯; scrolling down tucks them away
+// again, unless a search is in progress
+const topbar = document.querySelector('.topbar');
+function showTools(open){
+  open = open || !!$('searchInput').value || document.activeElement === $('searchInput');
+  topbar.classList.toggle('tools-open', open);
+  if(!open) $('menu').hidden = true;
+}
+const canScroll = () => document.documentElement.scrollHeight > innerHeight + 4;
+let lastScrollY = scrollY, touchY = null;
+addEventListener('scroll', () => {
+  const y = scrollY, d = y - lastScrollY;
+  if(d < -6) showTools(true);
+  else if(d > 6 && y > 80) showTools(false);
+  lastScrollY = y;
+}, {passive:true});
+// at the top the page cannot scroll any further, so watch the finger itself
+addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, {passive:true});
+addEventListener('touchmove', e => {
+  if(touchY === null || scrollY > 0) return;
+  const dy = e.touches[0].clientY - touchY;
+  if(dy > 30){ showTools(true); touchY = null; }
+  else if(dy < -30 && !canScroll()){ showTools(false); touchY = null; }
+}, {passive:true});
+addEventListener('touchend', () => { touchY = null; }, {passive:true});
+addEventListener('wheel', e => {
+  if(scrollY > 0) return;
+  if(e.deltaY < 0) showTools(true);
+  else if(e.deltaY > 0 && !canScroll()) showTools(false);
+}, {passive:true});
 $('sortSelect').value = SORTS[sortBy] ? sortBy : 'seen';
 $('sortSelect').addEventListener('change', e => {
   sortBy = e.target.value;
