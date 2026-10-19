@@ -2439,6 +2439,27 @@ function toast(msg){
   }
   renderGrid();
 })();
+
+/* ---------- pick up a newer version ---------- */
+// GitHub Pages lets the phone keep the page for 10 minutes, so right after an update the app can
+// still open the old one. Ask the server (bypassing that copy) whether the page is newer, and if so
+// reload once. Checked at start and whenever the app comes back to the front.
+async function checkForUpdate(){
+  if(!/^https?:$/.test(location.protocol)) return;
+  try{
+    const res = await fetch(location.pathname, {cache:'reload'});  // also refreshes the stored copy
+    const latest = Date.parse(res.headers.get('last-modified') || '');
+    const mine = Date.parse(document.lastModified);
+    if(!latest || !mine || latest <= mine + 1000) return;
+    const KEY = 'card-album-reloaded-for';
+    if(sessionStorage.getItem(KEY) === String(latest)) return;  // never loop
+    sessionStorage.setItem(KEY, String(latest));
+    if(sheetId) await saveSheet();  // keep a memo being typed
+    location.reload();
+  }catch(err){ /* offline: keep the current page */ }
+}
+checkForUpdate();
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkForUpdate(); });
 </script>
 </body>
 </html>
