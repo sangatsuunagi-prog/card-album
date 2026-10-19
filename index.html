@@ -120,50 +120,6 @@
   }
   .tab.active{color:var(--on-app);border-bottom-color:var(--accent);}
   .tab .n{font-size:11px;margin-left:4px;color:var(--on-app-muted);}
-  .toolbar{
-    display:flex;
-    gap:8px;
-    max-width:960px;
-    margin:12px auto 0;
-  }
-  /* search, sort and the ⋯ menu stay tucked away until the list is pulled down. The search bar
-     drops down over the list instead of pushing it, so showing/hiding never moves the page. */
-  .topbar .toolbar{
-    position:absolute;
-    left:0;
-    right:0;
-    top:100%;
-    margin:0;
-    padding:10px 16px;
-    background:var(--app-bg);
-    background:color-mix(in srgb, var(--app-bg) 92%, transparent);
-    backdrop-filter:blur(8px);
-    -webkit-backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--app-line);
-    transition:opacity .2s, transform .2s, visibility .2s;
-  }
-  .topbar #menuBtn{transition:opacity .2s, visibility .2s;}
-  .topbar:not(.tools-open) .toolbar{opacity:0;visibility:hidden;transform:translateY(-8px);}
-  .topbar:not(.tools-open) #menuBtn{opacity:0;visibility:hidden;}
-  .toolbar input, .toolbar select{
-    background:var(--app-line);
-    border:1px solid var(--app-line);
-    color:var(--on-app);
-    border-radius:999px;
-    font-family:inherit;
-    font-size:16px;  /* 16px keeps iOS from zooming in on focus */
-    padding:8px 14px;
-    outline:none;
-  }
-  .toolbar input{flex:1;min-width:0;-webkit-appearance:none;appearance:none;}
-  .toolbar input::placeholder{color:var(--on-app-muted);}
-  .toolbar input:focus{border-color:var(--accent);}
-  .toolbar select{
-    flex-shrink:0;
-    width:auto;
-    font-size:14px;
-  }
-  .toolbar select option{color:#17140f;}
 
   .menu{
     position:absolute;
@@ -188,7 +144,45 @@
     padding:14px 16px;
     cursor:pointer;
   }
-  .menu button + button{border-top:1px solid var(--border);}
+  .menu button + button, .menu-tools + button{border-top:1px solid var(--border);}
+  /* search and sort live at the top of the ⋯ menu */
+  .menu{width:min(300px, calc(100vw - 32px));}
+  .menu-tools{padding:12px;display:flex;flex-direction:column;gap:10px;}
+  .menu-tools input, .menu-tools select{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:8px;
+    font-family:inherit;
+    font-size:16px;  /* 16px keeps iOS from zooming in on focus */
+    padding:9px 12px;
+    outline:none;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  .menu-tools input:focus, .menu-tools select:focus{border-color:var(--accent);}
+  .menu-sort{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);white-space:nowrap;}
+  .menu-sort select{flex:1;}
+  /* shown only while a search narrows the list */
+  .search-chip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    width:max-content;
+    max-width:100%;
+    margin:8px auto 0 0;
+    padding:4px 4px 4px 12px;
+    border-radius:999px;
+    background:var(--app-line);
+    font-size:13px;
+    color:var(--on-app);
+  }
+  .search-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .search-chip button{
+    background:none;border:none;color:var(--on-app-muted);
+    font-size:13px;width:26px;height:26px;border-radius:50%;cursor:pointer;flex-shrink:0;
+  }
   .menu button:active{background:#33322c;}
 
   /* ---------- grid ---------- */
@@ -800,14 +794,9 @@
     <h1>CARD ALBUM</h1>
     <button class="icon-btn" id="menuBtn" aria-label="メニュー">⋯</button>
   </div>
-  <div class="toolbar">
-    <input type="search" id="searchInput" placeholder="タイトル・人名・メモで検索" enterkeyhint="search">
-    <select id="sortSelect" aria-label="並び順">
-      <option value="seen">見た日順</option>
-      <option value="created">追加した順</option>
-      <option value="rating">評価順</option>
-      <option value="title">タイトル順</option>
-    </select>
+  <div class="search-chip" id="searchChip" hidden>
+    <span id="searchChipText"></span>
+    <button id="searchClear" aria-label="検索をやめる">✕</button>
   </div>
   <nav class="tabs" id="tabs">
     <button class="tab active" data-filter="all">すべて<span class="n" id="nAll">0</span></button>
@@ -815,6 +804,17 @@
     <button class="tab" data-filter="novel">小説<span class="n" id="nNovel">0</span></button>
   </nav>
   <div class="menu" id="menu" hidden>
+    <div class="menu-tools">
+      <input type="search" id="searchInput" placeholder="タイトル・人名・メモで検索" enterkeyhint="search">
+      <label class="menu-sort">並び順
+        <select id="sortSelect">
+          <option value="seen">見た日順</option>
+          <option value="created">追加した順</option>
+          <option value="rating">評価順</option>
+          <option value="title">タイトル順</option>
+        </select>
+      </label>
+    </div>
     <button id="bgBtn">背景の色を変える</button>
     <button id="exportBtn">データを書き出す(バックアップ)</button>
     <button id="importBtn">データを読み込む</button>
@@ -1435,38 +1435,22 @@ $('tabs').addEventListener('click', e => {
 $('addBtn').addEventListener('click', () => openEditor(null));
 $('searchInput').addEventListener('input', e => { query = e.target.value; renderGrid(); });
 
-// swipe down on the list to show search / sort / ⋯; they tuck away again after 3 seconds,
-// but stay while the search box is in use or has text, or the menu is open
-const topbar = document.querySelector('.topbar');
-const TOOLS_MS = 3000;
-let toolsTimer = null, touchY = null;
-function toolsBusy(){
-  const search = $('searchInput');
-  return !!search.value || document.activeElement === search ||
-    document.activeElement === $('sortSelect') || !$('menu').hidden;
+function updateSearchChip(){
+  const q = $('searchInput').value.trim();
+  $('searchChip').hidden = !q;
+  $('searchChipText').textContent = `「${q}」で検索中`;
 }
-function hideToolsLater(){
-  clearTimeout(toolsTimer);
-  toolsTimer = setTimeout(() => {
-    if(toolsBusy()) return hideToolsLater();
-    topbar.classList.remove('tools-open');
-  }, TOOLS_MS);
-}
-function showTools(){
-  topbar.classList.add('tools-open');
-  hideToolsLater();
-}
-// touching the bar itself keeps it up for another 3 seconds
-topbar.addEventListener('pointerdown', () => { if(topbar.classList.contains('tools-open')) hideToolsLater(); });
-topbar.addEventListener('input', hideToolsLater);
-const onList = e => !e.target.closest('.viewer, .editor, .sheet, .backdrop');
-addEventListener('touchstart', e => { touchY = onList(e) ? e.touches[0].clientY : null; }, {passive:true});
-addEventListener('touchmove', e => {
-  if(touchY === null) return;
-  if(e.touches[0].clientY - touchY > 30){ showTools(); touchY = null; }
-}, {passive:true});
-addEventListener('touchend', () => { touchY = null; }, {passive:true});
-addEventListener('wheel', e => { if(e.deltaY < 0 && onList(e)) showTools(); }, {passive:true});
+$('searchInput').addEventListener('input', updateSearchChip);
+// the keyboard's search key closes the menu so the results can be seen
+$('searchInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.target.blur(); $('menu').hidden = true; }
+});
+$('searchClear').addEventListener('click', () => {
+  $('searchInput').value = '';
+  query = '';
+  updateSearchChip();
+  renderGrid();
+});
 $('sortSelect').value = SORTS[sortBy] ? sortBy : 'seen';
 $('sortSelect').addEventListener('change', e => {
   sortBy = e.target.value;
