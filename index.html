@@ -351,11 +351,6 @@
     margin-bottom:2cqw;
   }
   .stars .off{color:rgba(var(--ink-rgb),.2);}
-  /* これから / 途中 cards say so where the stars would be */
-  .stars.status{font-size:3.4cqw;line-height:4.8cqw;letter-spacing:.12em;color:rgba(var(--ink-rgb),.8);font-weight:700;}
-  .stars.status::before{content:'';display:inline-block;width:2.2cqw;height:2.2cqw;border-radius:50%;
-    border:.4cqw solid currentColor;margin-right:1.4cqw;vertical-align:.2cqw;}
-  .stars.status.doing::before{background:linear-gradient(90deg, currentColor 50%, transparent 50%);}
   .meta-line{
     flex-shrink:0;
     display:flex;
@@ -817,6 +812,26 @@
   .bars .val{font-size:12px;color:var(--muted);text-align:right;}
   .stat-pair{display:grid;grid-template-columns:1fr;gap:12px;}
   #statsMode{margin-bottom:14px;}
+  /* to watch / to read list */
+  .li-add{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:18px;}
+  .li-add .seg{margin-bottom:0;}
+  .li-add .btn{width:auto;padding:0 18px;}
+  .li-head{font-size:13px;color:var(--muted);margin:16px 2px 8px;font-weight:700;}
+  .li-head span{margin-left:6px;font-weight:400;}
+  .li{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;}
+  .li-row{display:flex;align-items:center;}
+  .li-main{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;background:none;border:none;
+    color:var(--text);font:inherit;text-align:left;padding:12px;cursor:pointer;}
+  .li-type{font-size:11px;color:var(--muted);flex-shrink:0;}
+  .li-title{font-size:15px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+  .li-note{flex-basis:100%;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .li-state{flex-shrink:0;margin-right:10px;border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;
+    background:none;border:1px solid var(--border);color:var(--label);}
+  .li-state.doing{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .li-more{padding:0 12px 12px;}
+  .li-more textarea{min-height:0;font-size:14px;margin-bottom:10px;}
+  .li-btns{display:flex;justify-content:space-between;gap:8px;}
+  .li-btns .btn{width:auto;padding:10px 18px;}
   /* SVG charts */
   .chart{display:block;width:100%;height:auto;overflow:visible;}
   .chart .grid{stroke:var(--border);stroke-width:1;}
@@ -861,7 +876,6 @@
   }
   .star-input button.on{color:var(--star);}
 
-  .editor:not([data-status="done"]) [data-field="rating"] .req{display:none;}
   .editor[data-type="movie"] .novel-only,
   .editor[data-type="novel"] .movie-only{display:none;}
 
@@ -959,10 +973,6 @@
     <span id="searchChipText"></span>
     <button id="searchClear" aria-label="検索をやめる">✕</button>
   </div>
-  <div class="search-chip" id="statusFilterChip" hidden>
-    <span id="statusFilterText"></span>
-    <button id="statusFilterClear" aria-label="状態の絞り込みをやめる">✕</button>
-  </div>
   <div class="search-chip" id="tagFilterChip" hidden>
     <span id="tagFilterText"></span>
     <button id="tagFilterClear" aria-label="タグの絞り込みをやめる">✕</button>
@@ -984,14 +994,11 @@
         </select>
       </label>
     </div>
-    <div class="menu-tags">
-      <span class="menu-tags-label">状態で絞り込む</span>
-      <div class="chips" id="menuStatusChips"></div>
-    </div>
     <div class="menu-tags" id="menuTags" hidden>
       <span class="menu-tags-label">タグで絞り込む</span>
       <div class="chips" id="menuTagChips"></div>
     </div>
+    <button id="listBtn">これから・途中リスト</button>
     <button id="statsBtn">振り返り</button>
     <button id="bgBtn">背景の色を変える</button>
     <button id="titleFontBtn">タイトルの書体</button>
@@ -1024,6 +1031,30 @@
   <p class="viewer-hint">左右になぞって回す ・ 上にスワイプでメモ</p>
 </div>
 
+<!-- to watch / to read list -->
+<div class="stats" id="listPage" hidden>
+  <div class="editor-top">
+    <button class="text-btn" id="listClose">閉じる</button>
+    <h2>これから・途中リスト</h2>
+    <span class="stats-spacer"></span>
+  </div>
+  <div class="stats-body">
+    <div class="stats-inner">
+      <div class="li-add">
+        <div class="seg small" id="listTypeSeg">
+          <button data-type="movie">映画</button>
+          <button data-type="novel">小説</button>
+        </div>
+        <div class="tag-add">
+          <input type="text" id="listTitle" enterkeyhint="done" maxlength="80">
+          <button type="button" class="btn" id="listAddBtn">追加</button>
+        </div>
+      </div>
+      <div id="listItems"></div>
+    </div>
+  </div>
+</div>
+
 <!-- review / stats page -->
 <div class="stats" id="stats" hidden>
   <div class="editor-top">
@@ -1050,7 +1081,6 @@
   <h2 id="sheetTitle"></h2>
   <p class="sub" id="sheetSub"></p>
   <div class="memo-tags" id="memoTags" hidden></div>
-  <div class="seg small seg3" id="memoStatusSeg"></div>
   <div class="field">
     <label for="dateInput" id="dateLabel">見た日</label>
     <div class="date-row">
@@ -1237,11 +1267,6 @@
           </div>
         </div>
 
-        <div class="field">
-          <span class="label">状態</span>
-          <div class="seg seg3" id="statusSeg"></div>
-        </div>
-
         <div class="field" data-field="rating">
           <span class="label">評価<span class="req">*</span></span>
           <div class="star-input" id="starInput">
@@ -1379,8 +1404,6 @@ let filter = 'all';
 
 let query = '';
 let tagFilter = '';  // show only the cards with this tag
-let statusFilter = '';  // '', 'done', 'doing' or 'want'
-const statusOf = c => c.status || 'done';  // cards made before statuses existed are finished ones
 let sortBy = 'seen';
 try{ sortBy = localStorage.getItem(APP_ID + '-sort') || 'seen'; }catch(err){}
 
@@ -1409,7 +1432,6 @@ function visibleCards(){
   return cards
     .filter(c => filter === 'all' || c.type === filter)
     .filter(c => !tagFilter || (c.tags || []).includes(tagFilter))
-    .filter(c => !statusFilter || statusOf(c) === statusFilter)
     .filter(c => !words.length || (h => words.every(w => h.includes(w)))(haystack(c)))
     .sort(SORTS[sortBy] || bySeen);
 }
@@ -1478,9 +1500,7 @@ function infoHTML(c){
       <div class="t">${esc(title)}</div>
       <div class="y">${esc(c.year)}</div>
     </div>
-    ${statusOf(c) === 'done'
-      ? `<div class="stars">${'★'.repeat(r)}<span class="off">${'★'.repeat(5 - r)}</span></div>`
-      : `<div class="stars status ${statusOf(c)}">${statusLabel(c.type, statusOf(c))}</div>`}
+    <div class="stars">${'★'.repeat(r)}<span class="off">${'★'.repeat(5 - r)}</span></div>
     ${body}${seen}
   </div>`;
 }
@@ -2024,7 +2044,6 @@ function openSheet(id){
     : [c.director, c.year].filter(Boolean).join(' ・ ');
   $('dateLabel').textContent = c.type === 'novel' ? '読んだ日' : '見た日';
   renderMemoTags(c);
-  renderMemoStatus(c);
   dateInput.value = c.date || '';
   memoInput.value = c.memo || '';
   saveStatus.textContent = '';
@@ -2119,7 +2138,6 @@ function collect(){
     deco: edDeco,
     dateStyle: edDateStyle,
     tags: [...edTags],
-    status: edStatus,
   };
 }
 function todayStr(){
@@ -2168,7 +2186,6 @@ function setType(t){
   setGenre(genre);
   editor.dataset.type = t;
   document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('active', b.dataset.type === t));
-  renderStatusSeg();
   updatePreview();
 }
 function setRating(v){
@@ -2219,7 +2236,6 @@ function openEditor(card){
   f.director.value = c.director || '';
   setGenre(c.genre);
   setTags(c.tags);
-  edStatus = card ? statusOf(card) : (statusFilter || 'done');
   const cast = c.cast || [];
   f.cast1.value = cast[0] || '';
   f.cast2.value = cast[1] || '';
@@ -2241,12 +2257,11 @@ function openEditor(card){
   document.querySelectorAll('.field.invalid').forEach(el => el.classList.remove('invalid'));
   setType(c.type || (filter === 'novel' ? 'novel' : 'movie'));
   setRating(c.rating || 0);
-  renderStatusSeg();
   editor.hidden = false;
   $('editorBody').scrollTop = 0;
   clearImage();
   if(c.image) loadImage(c.image, false);
-  pushLayer(() => { editor.hidden = true; editingId = null; });
+  pushLayer(() => { editor.hidden = true; editingId = null; listConvertId = null; });
 }
 
 // full-width digits (２０２４) → half-width (2024)
@@ -2434,7 +2449,7 @@ function validate(d){
   if(d.type === 'movie' && !d.director) bad.push('director');
   if(d.type === 'novel' && !d.author) bad.push('author');
   if(!/^\d{1,4}$/.test(d.year)) bad.push('year');
-  if(d.status === 'done' && !d.rating) bad.push('rating');  // no stars yet for これから / 途中
+  if(!d.rating) bad.push('rating');
   document.querySelectorAll('.field[data-field]').forEach(el =>
     el.classList.toggle('invalid', bad.includes(el.dataset.field)));
   if(bad.length){
@@ -2460,8 +2475,11 @@ $('editorSave').addEventListener('click', async () => {
     image: !img.natW ? '' : (img.dirty ? croppedImage() : img.src),
     updatedAt: Date.now(),
   });
+  const fromList = listConvertId && watchList.find(x => x.id === listConvertId);
+  if(fromList && fromList.note && !card.memo) card.memo = fromList.note;
   try{
     await DB.put(card);
+    finishListItem();
   }catch(err){
     console.error(err);
     toast('保存に失敗しました');
@@ -2627,7 +2645,7 @@ lightScheme.addEventListener('change', () => {
 const menu = $('menu');
 $('menuBtn').addEventListener('click', e => {
   e.stopPropagation();
-  if(menu.hidden){ renderMenuTags(); renderMenuStatus(); }
+  if(menu.hidden) renderMenuTags();
   menu.hidden = !menu.hidden;
 });
 document.addEventListener('click', e => { if(!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
@@ -2642,7 +2660,7 @@ $('exportBtn').addEventListener('click', () => {
     settings.sort = localStorage.getItem(APP_ID + '-sort');
     settings.titleFont = localStorage.getItem(TITLE_FONT_KEY);
   }catch(err){}
-  const data = JSON.stringify({app:'card-album', version:1, exportedAt:new Date().toISOString(), settings, cards}, null, 1);
+  const data = JSON.stringify({app:'card-album', version:1, exportedAt:new Date().toISOString(), settings, cards, list:watchList}, null, 1);
   const a = document.createElement('a');
   const d = new Date();
   a.download = `card-album-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.json`;
@@ -2679,6 +2697,12 @@ $('importInput').addEventListener('change', async e => {
     await DB.putMany(list);
     cards = await DB.all();
     applyImportedSettings(data.settings);
+    // list entries are added unless one with the same id is already here
+    if(Array.isArray(data.list)){
+      const have = new Set(watchList.map(x => x.id));
+      watchList.push(...data.list.filter(x => x && x.id && x.title && !have.has(x.id)));
+      saveList();
+    }
     renderGrid();
     toast(`${list.length}件を読み込みました`);
   }catch(err){
@@ -2768,68 +2792,117 @@ $('memoTags').addEventListener('click', e => {
   setTagFilter(b.dataset.tag);
 });
 
-/* ---------- status: これから / 途中 / 見た・読んだ ---------- */
-const STATUSES = ['done', 'doing', 'want'];
-function statusLabel(type, st){
-  const novel = type === 'novel';
-  return {done:novel ? '読んだ' : '見た', doing:novel ? '読んでいる途中' : '見ている途中', want:novel ? 'これから読む' : 'これから見る'}[st];
+/* ---------- これから・途中リスト ---------- */
+// Titles to watch / read later, kept apart from the cards: just a title and a note. When one is
+// finished, "カードにする" opens the editor with it filled in, and saving the card takes it off the list.
+const LIST_KEY = APP_ID + '-list';
+let watchList = [];
+try{ watchList = JSON.parse(localStorage.getItem(LIST_KEY) || '[]').filter(x => x && x.id && x.title); }catch(err){}
+function saveList(){
+  try{ localStorage.setItem(LIST_KEY, JSON.stringify(watchList)); }catch(err){ toast('リストを保存できませんでした'); }
 }
-let edStatus = 'done';
-function renderStatusSeg(){
-  editor.dataset.status = edStatus;  // stars are only required once it is finished
-  $('statusSeg').innerHTML = STATUSES.map(st =>
-    `<button type="button" data-status="${st}" class="${st === edStatus ? 'active' : ''}">${statusLabel(edType, st)}</button>`).join('');
+const listEl = $('listPage');
+let listType = 'movie', listOpenId = null, listDeleteId = null, listConvertId = null;
+function renderList(){
+  $('listTypeSeg').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.type === listType));
+  $('listTitle').placeholder = listType === 'novel' ? '読みたい小説のタイトル' : '見たい映画のタイトル';
+  const row = it => {
+    const open = it.id === listOpenId;
+    return `<div class="li${open ? ' open' : ''}" data-id="${it.id}">
+      <div class="li-row">
+        <button type="button" class="li-main" data-act="open">
+          <span class="li-type">${it.type === 'novel' ? '小説' : '映画'}</span>
+          <span class="li-title">${esc(it.title)}</span>
+          ${it.note && !open ? `<span class="li-note">${esc(it.note)}</span>` : ''}
+        </button>
+        <button type="button" class="li-state ${it.state}" data-act="state" aria-label="途中/これからを切り替える">${it.state === 'doing' ? '途中' : 'これから'}</button>
+      </div>
+      ${open ? `<div class="li-more">
+        <textarea data-act="note" rows="2" placeholder="ひとこと（任意）：誰のおすすめ、どこで見られる…">${esc(it.note || '')}</textarea>
+        <div class="li-btns">
+          <button type="button" class="text-btn" data-act="del">${it.id === listDeleteId ? 'もう一度押すと削除' : '削除'}</button>
+          <button type="button" class="btn" data-act="card">${it.type === 'novel' ? '読んだ' : '見た'}！カードにする</button>
+        </div>
+      </div>` : ''}
+    </div>`;
+  };
+  const groups = [['doing', '途中'], ['want', 'これから']].map(([st, label]) => [label, watchList.filter(it => it.state === st)]).filter(g => g[1].length);
+  $('listItems').innerHTML = groups.length
+    ? groups.map(([label, items]) => `<h3 class="li-head">${label}<span>${items.length}</span></h3>${items.map(row).join('')}`).join('')
+    : '<p class="stat-empty">まだありません。<br>気になる作品のタイトルを書いておきましょう。</p>';
 }
-$('statusSeg').addEventListener('click', e => {
-  const b = e.target.closest('button[data-status]');
-  if(!b) return;
-  edStatus = b.dataset.status;
-  renderStatusSeg();
-  updatePreview();
+function addListItem(){
+  const title = $('listTitle').value.trim();
+  if(!title) return;
+  watchList.unshift({id:'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), type:listType, title, note:'', state:'want', createdAt:Date.now()});
+  saveList();
+  $('listTitle').value = '';
+  renderList();
+}
+$('listAddBtn').addEventListener('click', addListItem);
+$('listTitle').addEventListener('keydown', e => {
+  if(e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addListItem(); }
 });
-
-// the memo sheet can move a card along (e.g. finished reading); finishing fills in today's date
-function renderMemoStatus(c){
-  $('memoStatusSeg').innerHTML = STATUSES.map(st =>
-    `<button type="button" data-status="${st}" class="${st === statusOf(c) ? 'active' : ''}">${statusLabel(c.type, st)}</button>`).join('');
-}
-$('memoStatusSeg').addEventListener('click', async e => {
-  const b = e.target.closest('button[data-status]');
-  const c = findCard(sheetId);
-  if(!b || !c || b.dataset.status === statusOf(c)) return;
-  c.status = b.dataset.status;
-  if(c.status === 'done' && !dateInput.value) dateInput.value = todayStr();
-  renderMemoStatus(c);
-  await saveSheet();
-  c.updatedAt = Date.now();
-  await DB.put(c);
-  saveStatus.textContent = '保存しました';
+$('listTypeSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-type]');
+  if(b){ listType = b.dataset.type; renderList(); }
 });
-
-function setStatusFilter(st){
-  statusFilter = st || '';
-  $('statusFilterChip').hidden = !statusFilter;
-  $('statusFilterText').textContent = `「${{done:'見た・読んだ', doing:'途中', want:'これから'}[statusFilter] || ''}」だけ表示中`;
-  renderGrid();
+$('listItems').addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]'), li = e.target.closest('.li[data-id]');
+  if(!btn || !li) return;
+  const it = watchList.find(x => x.id === li.dataset.id);
+  if(!it) return;
+  const act = btn.dataset.act;
+  if(act === 'open'){ listOpenId = listOpenId === it.id ? null : it.id; listDeleteId = null; renderList(); }
+  if(act === 'state'){ it.state = it.state === 'doing' ? 'want' : 'doing'; saveList(); renderList(); }
+  if(act === 'del'){
+    // two taps, so a stray touch never loses an entry
+    if(listDeleteId === it.id){
+      watchList = watchList.filter(x => x !== it);
+      listDeleteId = listOpenId = null;
+      saveList();
+      toast('リストから削除しました');
+    }else{
+      listDeleteId = it.id;
+    }
+    renderList();
+  }
+  if(act === 'card'){
+    openEditor(null);
+    listConvertId = it.id;
+    setType(it.type);
+    f.title.value = it.title;
+    updatePreview();
+  }
+});
+$('listItems').addEventListener('input', e => {
+  const li = e.target.closest('.li[data-id]');
+  const it = li && watchList.find(x => x.id === li.dataset.id);
+  if(it && e.target.dataset.act === 'note'){ it.note = e.target.value; saveList(); }
+});
+// called once the card made from a list entry has been saved
+function finishListItem(){
+  if(!listConvertId) return;
+  watchList = watchList.filter(x => x.id !== listConvertId);
+  listConvertId = listOpenId = null;
+  saveList();
+  if(!listEl.hidden) renderList();
 }
-$('statusFilterClear').addEventListener('click', () => setStatusFilter(''));
-function renderMenuStatus(){
-  $('menuStatusChips').innerHTML = [['done', '見た・読んだ'], ['doing', '途中'], ['want', 'これから']].map(([st, label]) =>
-    `<button type="button" class="chip${st === statusFilter ? ' on' : ''}" data-status="${st}">${label}<span class="n">${cards.filter(c => statusOf(c) === st).length}</span></button>`).join('');
-}
-$('menuStatusChips').addEventListener('click', e => {
-  const b = e.target.closest('.chip[data-status]');
-  if(!b) return;
-  setStatusFilter(b.dataset.status === statusFilter ? '' : b.dataset.status);
+$('listBtn').addEventListener('click', () => {
   $('menu').hidden = true;
+  listOpenId = listDeleteId = null;
+  renderList();
+  listEl.hidden = false;
+  pushLayer(() => { listEl.hidden = true; });
 });
+$('listClose').addEventListener('click', () => closeLayers());
 
 /* ---------- review / stats page ---------- */
-// Only finished cards count, by their watched / read date ("すべて" also counts undated ones).
-// Two modes: graphs, and a month calendar with the cards on the days they were finished.
+// Counted by the watched / read date ("すべて" also counts undated cards).
+// Two modes: graphs, and a month calendar with the cards on the days they were watched / read.
 const statsEl = $('stats');
 let statsYear = 'all', statsMode = 'graph', calMonth = '', calDay = 0;
-const doneCards = () => cards.filter(c => statusOf(c) === 'done');
+const doneCards = () => cards;
 function cardYears(){
   return [...new Set(doneCards().filter(c => c.date).map(c => c.date.slice(0, 4)))].sort().reverse();
 }
@@ -2910,7 +2983,7 @@ function renderStats(){
   const done = doneCards();
   const list = statsYear === 'all' ? done : done.filter(c => (c.date || '').startsWith(statsYear));
   if(!list.length){
-    $('statsContent').innerHTML = '<p class="stat-empty">まだ「見た・読んだ」カードがありません</p>';
+    $('statsContent').innerHTML = '<p class="stat-empty">まだカードがありません</p>';
     return;
   }
   const movies = list.filter(c => c.type === 'movie'), novels = list.filter(c => c.type === 'novel');
@@ -2971,7 +3044,7 @@ function showPace(i){
   }
 }
 
-// month calendar: a photo (or the card's color) on each day something was finished
+// month calendar: a photo (or the card's color) on each day something was watched / read
 function renderCalendar(){
   const [y, m] = calMonth.split('-').map(Number);
   const first = new Date(y, m - 1, 1).getDay(), days = new Date(y, m, 0).getDate();
@@ -3001,7 +3074,7 @@ function renderCalendar(){
     <div class="cal-list">${picked
       ? picked.map(c => `<button type="button" class="cal-item" data-id="${c.id}">
           <span class="ti" style="${thumb(c)}"></span><span class="tt">${esc(c.title)}</span><span class="ty">${c.type === 'novel' ? '小説' : '映画'}</span></button>`).join('')
-      : `<p class="hint">${month.length ? '写真のある日を押すと、その日のカードが出ます' : 'この月の「見た・読んだ」はまだありません'}</p>`}</div>`;
+      : `<p class="hint">${month.length ? '写真のある日を押すと、その日のカードが出ます' : 'この月に見た・読んだカードはまだありません'}</p>`}</div>`;
 }
 function shiftMonth(step){
   const [y, m] = calMonth.split('-').map(Number), d = new Date(y, m - 1 + step, 1);
@@ -3036,7 +3109,7 @@ $('statsBtn').addEventListener('click', () => {
   $('menu').hidden = true;
   const y = String(new Date().getFullYear());
   statsYear = cardYears().includes(y) ? y : 'all';
-  // the calendar opens on the latest month with a finished card (or this month)
+  // the calendar opens on the latest month with a card (or this month)
   const latest = doneCards().map(c => c.date || '').sort().pop();
   const now = new Date();
   calMonth = latest ? latest.slice(0, 7) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
