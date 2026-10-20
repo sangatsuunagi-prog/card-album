@@ -680,6 +680,25 @@
   .zoom-icon{font-size:13px;color:var(--on-app-muted);width:14px;text-align:center;}
   .zoom-row input{flex:1;accent-color:var(--accent);}
   .img-actions{display:flex;justify-content:center;gap:8px;margin:10px 0 0;}
+  /* stickers: faint silhouettes on the backing paper, under the photo and text */
+  .stickers{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .stk{position:absolute;aspect-ratio:1/1;opacity:.14;fill:var(--ink);color:var(--ink);}
+  .stk svg{display:block;width:100%;height:100%;overflow:visible;}
+  #pvInfo{pointer-events:none;}  /* in the editor, touches reach the stickers under the text */
+  #pvCard .stk{pointer-events:auto;cursor:grab;touch-action:none;}
+  #pvCard .stk.sel{opacity:.38;outline:1.5px dashed var(--accent);outline-offset:2px;}
+  .sticker-tools{text-align:center;margin-top:10px;}
+  .sticker-tools .text-btn{color:var(--on-app);border-color:var(--app-line);}
+  .sticker-palette{margin:12px auto 0;max-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:left;}
+  .stk-group span{display:block;font-size:11px;color:var(--muted);margin:4px 2px 4px;}
+  .stk-group div{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px;}
+  .stk-group button{aspect-ratio:1/1;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);cursor:pointer;
+    fill:var(--text);color:var(--text);}
+  .stk-group button svg{display:block;width:100%;height:100%;}
+  .sticker-adjust{max-width:320px;margin:10px auto 0;display:flex;flex-direction:column;gap:8px;align-items:stretch;}
+  .sticker-adjust label{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--on-app-muted);}
+  .sticker-adjust input{flex:1;accent-color:var(--accent);}
+  .sticker-adjust .text-btn{align-self:center;}
 
   .form{
     color:var(--text);
@@ -1182,6 +1201,7 @@
       <div class="preview-card card-wrap">
         <article class="card" id="pvCard">
           <div id="pvDeco"></div>
+          <div id="pvStickers"></div>
           <div class="art empty" id="pvArt"></div>
           <div id="pvInfo" class="info-holder"></div>
           <div id="pvStamp"></div>
@@ -1200,6 +1220,16 @@
         <button class="text-btn" id="removeImgBtn" hidden>画像を外す</button>
       </div>
       <input type="file" id="imgInput" accept="image/*" hidden>
+      <div class="sticker-tools">
+        <button type="button" class="text-btn" id="stickerToggle">スタンプを貼る</button>
+        <div class="sticker-palette" id="stickerPalette" hidden></div>
+        <div class="sticker-adjust" id="stickerAdjust" hidden>
+          <p class="crop-hint">スタンプを指で動かせます</p>
+          <label>大きさ<input type="range" id="stkSize" min="10" max="80" step="1"></label>
+          <label>傾き<input type="range" id="stkRot" min="-180" max="180" step="1"></label>
+          <button type="button" class="text-btn" id="stkDelete">このスタンプを外す</button>
+        </div>
+      </div>
 
       <div class="form">
         <div class="seg" id="typeSeg">
@@ -1597,6 +1627,61 @@ function decoHTML(deco){
   return `<div class="deco">${DECO_SVG[deco]}</div>`;
 }
 
+// silhouettes on a 100×100 box (design/stamp-ideas.html)
+const STICKERS = {
+  // ---- 映画 ----
+  reel: '<path fill-rule="evenodd" d="M50 4a46 46 0 1 0 0 92a46 46 0 1 0 0-92zM50 14a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM50 68a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM23 41a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM77 41a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM50 45a5 5 0 1 1 0 10a5 5 0 1 1 0-10z"/>',
+  clapper: '<path d="M10 42h80v46a4 4 0 0 1-4 4H14a4 4 0 0 1-4-4z"/><path d="M8 36l78-22 4 14-78 22z"/><path fill="#e6dccb" d="M22 33l10-3-6 13-10 3zM44 27l10-3-6 13-10 3zM66 21l10-3-6 13-10 3z"/>',
+  popcorn: '<path d="M24 46h52l-8 48H32z"/><circle cx="30" cy="40" r="11"/><circle cx="44" cy="32" r="12"/><circle cx="58" cy="32" r="12"/><circle cx="71" cy="40" r="11"/><circle cx="50" cy="20" r="10"/>',
+  ticket: '<path fill-rule="evenodd" d="M6 28h88v14a8 8 0 0 0 0 16v14H6V58a8 8 0 0 0 0-16zM66 32v6h4v-6zM66 46v8h4v-8zM66 62v6h4v-6z"/>',
+  camera: '<circle cx="30" cy="24" r="14"/><circle cx="60" cy="24" r="14"/><rect x="12" y="40" width="62" height="40" rx="5"/><path d="M74 50l20-10v40l-20-10z"/>',
+  glasses3d: '<path d="M4 38h92v8l-6 0-4 22a6 6 0 0 1-6 5H62a6 6 0 0 1-6-5l-2-12h-8l-2 12a6 6 0 0 1-6 5H20a6 6 0 0 1-6-5L10 46H4z"/>',
+  // ---- 本 ----
+  book: '<path d="M50 26C38 18 20 16 6 20v62c14-4 32-2 44 6z"/><path d="M50 26c12-8 30-10 44-6v62c-14-4-32-2-44 6z" opacity=".75"/>',
+  pen: '<path d="M50 6c10 12 18 30 18 46L56 64v10H44V64L32 52C32 36 40 18 50 6z"/><rect x="42" y="78" width="16" height="16" rx="2"/>',
+  glasses: '<path fill-rule="evenodd" d="M27 36a18 18 0 1 0 0 36a18 18 0 1 0 0-36zM27 43a11 11 0 1 1 0 22a11 11 0 1 1 0-22zM73 36a18 18 0 1 0 0 36a18 18 0 1 0 0-36zM73 43a11 11 0 1 1 0 22a11 11 0 1 1 0-22z"/><path d="M42 46q8-6 16 0v5q-8-5-16 0z"/><path d="M10 48 2 34l4-2 8 13zM90 48l8-14-4-2-8 13z"/>',
+  cup: '<path d="M16 40h56v26a20 20 0 0 1-20 20H36a20 20 0 0 1-20-20z"/><path fill-rule="evenodd" d="M70 46h6a12 12 0 0 1 0 24h-6v-7h6a5 5 0 0 0 0-10h-6z"/><path d="M32 8c6 6-6 10 0 18h-5c-6-8 6-12 0-18zM46 6c6 6-6 10 0 18h-5c-6-8 6-12 0-18z"/><rect x="8" y="88" width="72" height="5" rx="2.5"/>',
+  books: '<rect x="12" y="70" width="76" height="16" rx="2"/><rect x="20" y="52" width="66" height="16" rx="2"/><rect x="8" y="34" width="70" height="16" rx="2"/><path d="M58 14h14v16l-7-5-7 5z"/>',
+  lamp: '<path d="M30 10h40l14 36H16z"/><rect x="46" y="46" width="8" height="34"/><path d="M26 84h48a6 6 0 0 1 6 6v2H20v-2a6 6 0 0 1 6-6z"/>',
+  // ---- 気持ち ----
+  heart: '<path d="M50 86C40 76 10 60 10 38A20 20 0 0 1 50 28A20 20 0 0 1 90 38C90 60 60 76 50 86Z"/>',
+  crown: '<path d="M8 30l20 18 22-30 22 30 20-18-8 50H16z"/><rect x="16" y="84" width="68" height="8" rx="2"/>',
+  tear: '<path d="M50 6C40 30 22 46 22 64a28 28 0 0 0 56 0C78 46 60 30 50 6z"/>',
+  bolt: '<path d="M65 2L32 55L55 49L35 98L68 43L45 48Z"/>',
+  moon: '<path d="M37.6 19.0A36 36 0 1 0 77.7 71.1A33.5 33.5 0 1 1 37.6 19.0Z"/><path d="M80.0 7.0Q82.2 15.8 91.0 18.0Q82.2 20.2 80.0 29.0Q77.8 20.2 69.0 18.0Q77.8 15.8 80.0 7.0ZM17.0 79.0Q18.4 84.6 24.0 86.0Q18.4 87.4 17.0 93.0Q15.6 87.4 10.0 86.0Q15.6 84.6 17.0 79.0Z"/>',
+  star: '<path d="M50 4l13 30 32 3-24 21 7 32-28-17-28 17 7-32L5 37l32-3z"/>',
+  // ---- 季節・小物 ----
+  rose: '<defs><mask id="rosecut"><rect width="100" height="100" fill="#fff"/><path fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" d="M70.9 24.2Q85.2 43.5 74.6 55.3M80.6 63.4Q66.4 81.9 52.5 74.9M47.6 84.9Q25.0 76.9 27.2 61.2M18.0 59.0Q18.5 35.7 33.9 33.2M32.5 21.9Q55.6 15.4 62.9 29.6M59.5 34.5Q75.4 41.8 69.7 58.2M66.5 60.5Q59.2 76.4 42.8 70.7M40.5 67.5Q24.6 60.2 30.3 43.8M33.5 41.5Q40.8 25.6 57.2 31.3M50 47c4 0 6 3 4 5-2 3-7 2-7-1-1-4 3-7 7-7 6 0 10 5 8 11-2 6-9 8-15 6"/></mask></defs>' +
+    '<path mask="url(#rosecut)" d="M30.9 19.3C33.5 8.1 33.2 5.0 51.6 5.0C57.5 8.7 71.0 14.6 72.8 21.8C84.2 20.2 88.8 22.8 93.7 40.1C91.8 46.6 89.8 60.9 83.4 64.5C88.2 74.8 89.6 79.8 74.4 90.0C67.5 90.3 52.9 92.9 47.4 87.9C38.9 95.6 35.5 95.7 21.7 84.7C19.5 78.4 12.0 66.4 15.1 59.7C5.1 54.1 2.0 50.2 8.6 33.4C14.0 29.4 23.6 18.4 30.9 19.3Z"/>',
+  vine: '<path fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" d="M8 90C30 86 34 64 50 60s30 2 30-14c0-10-10-14-16-10-5 3-4 10 1 11 4 1 6-2 5-5"/>' +
+    '<path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M30 78c-6-6-4-14 2-14 4 0 5 5 2 7M62 60c6 6 14 4 14-2"/>' +
+    '<path d="M20 86c-4-10 2-18 12-18-1 10-6 16-12 18zM44 62c-2-11 5-18 15-16-2 10-8 15-15 16zM70 36c2-10 10-14 18-10-4 8-11 11-18 10z"/>',
+  sun: '<circle cx="50" cy="50" r="18"/><path d="M44.8 27.6L46.1 25.3L47.5 23.1L48.8 21.0L49.8 19.0L50.3 17.0L50.2 15.0L49.6 13.0L48.5 11.0L47.1 9.1L45.6 7.2L44.5 5.3L43.8 3.4L43.8 3.4L45.8 5.2L48.4 7.0L51.1 9.0L53.8 11.2L56.0 13.5L57.6 15.8L58.5 18.1L58.7 20.2L58.3 22.2L57.4 24.0L56.3 25.8L55.2 27.6ZM62.2 30.5L64.7 29.8L67.3 29.2L69.6 28.7L71.8 27.9L73.6 26.9L74.9 25.4L75.9 23.6L76.5 21.4L76.9 19.0L77.2 16.7L77.7 14.5L78.5 12.7L78.5 12.7L78.7 15.3L79.2 18.5L79.8 21.8L80.1 25.2L80.1 28.4L79.5 31.2L78.6 33.5L77.2 35.1L75.5 36.2L73.6 36.9L71.6 37.4L69.5 37.8ZM72.4 44.8L74.7 46.1L76.9 47.5L79.0 48.8L81.0 49.8L83.0 50.3L85.0 50.2L87.0 49.6L89.0 48.5L90.9 47.1L92.8 45.6L94.7 44.5L96.6 43.8L96.6 43.8L94.8 45.8L93.0 48.4L91.0 51.1L88.8 53.8L86.5 56.0L84.2 57.6L81.9 58.5L79.8 58.7L77.8 58.3L76.0 57.4L74.2 56.3L72.4 55.2ZM69.5 62.2L70.2 64.7L70.8 67.3L71.3 69.6L72.1 71.8L73.1 73.6L74.6 74.9L76.4 75.9L78.6 76.5L81.0 76.9L83.3 77.2L85.5 77.7L87.3 78.5L87.3 78.5L84.7 78.7L81.5 79.2L78.2 79.8L74.8 80.1L71.6 80.1L68.8 79.5L66.5 78.6L64.9 77.2L63.8 75.5L63.1 73.6L62.6 71.6L62.2 69.5ZM55.2 72.4L53.9 74.7L52.5 76.9L51.2 79.0L50.2 81.0L49.7 83.0L49.8 85.0L50.4 87.0L51.5 89.0L52.9 90.9L54.4 92.8L55.5 94.7L56.2 96.6L56.2 96.6L54.2 94.8L51.6 93.0L48.9 91.0L46.2 88.8L44.0 86.5L42.4 84.2L41.5 81.9L41.3 79.8L41.7 77.8L42.6 76.0L43.7 74.2L44.8 72.4ZM37.8 69.5L35.3 70.2L32.7 70.8L30.4 71.3L28.2 72.1L26.4 73.1L25.1 74.6L24.1 76.4L23.5 78.6L23.1 81.0L22.8 83.3L22.3 85.5L21.5 87.3L21.5 87.3L21.3 84.7L20.8 81.5L20.2 78.2L19.9 74.8L19.9 71.6L20.5 68.8L21.4 66.5L22.8 64.9L24.5 63.8L26.4 63.1L28.4 62.6L30.5 62.2ZM27.6 55.2L25.3 53.9L23.1 52.5L21.0 51.2L19.0 50.2L17.0 49.7L15.0 49.8L13.0 50.4L11.0 51.5L9.1 52.9L7.2 54.4L5.3 55.5L3.4 56.2L3.4 56.2L5.2 54.2L7.0 51.6L9.0 48.9L11.2 46.2L13.5 44.0L15.8 42.4L18.1 41.5L20.2 41.3L22.2 41.7L24.0 42.6L25.8 43.7L27.6 44.8ZM30.5 37.8L29.8 35.3L29.2 32.7L28.7 30.4L27.9 28.2L26.9 26.4L25.4 25.1L23.6 24.1L21.4 23.5L19.0 23.1L16.7 22.8L14.5 22.3L12.7 21.5L12.7 21.5L15.3 21.3L18.5 20.8L21.8 20.2L25.2 19.9L28.4 19.9L31.2 20.5L33.5 21.4L35.1 22.8L36.2 24.5L36.9 26.4L37.4 28.4L37.8 30.5Z"/>',
+  cat: '<path d="M30 92c-8 0-12-6-10-14 3-14 6-30 4-40l-6-22 16 10c4-1 8-1 12 0l16-10-6 22c-2 10 0 22 8 34 10 2 22 0 26-8 2 8-6 18-18 22-6 4-14 6-22 6z"/>',
+  key: '<path fill-rule="evenodd" d="M30 12a22 22 0 1 0 0 44a22 22 0 1 0 0-44zM30 24a10 10 0 1 1 0 20a10 10 0 1 1 0-20z"/><path d="M48 30h46v10h-8v12h-10V40h-6v8H60v-8H48z"/>',
+  scroll: '<path d="M25.7 43.1L27.1 38.4L29.1 34.0L31.7 30.1L34.8 26.8L38.3 24.0L42.0 21.8L45.9 20.3L49.9 19.4L53.8 19.2L57.7 19.5L61.3 20.4L64.7 21.8L67.7 23.7L70.4 25.9L72.6 28.4L74.3 31.2L75.6 34.1L76.4 37.1L76.7 40.1L76.6 43.0L76.0 45.8L75.1 48.4L73.8 50.8L72.1 52.9L70.3 54.6L68.2 56.0L66.1 57.1L63.8 57.8L61.5 58.1L59.3 58.1L57.2 57.7L55.2 57.1L53.3 56.2L51.7 55.0L50.3 53.7L49.2 52.1L48.3 50.5L47.7 48.8L47.4 47.1L47.4 45.4L47.6 43.8L48.0 42.3L48.7 40.9L49.5 39.6L50.5 38.5L51.6 37.6L52.8 36.9L54.1 36.4L55.3 36.2L56.6 36.1L57.8 36.2L59.0 36.5L60.0 37.0L61.0 37.5L61.8 38.3L62.5 39.1L63.0 39.9L63.4 40.9L63.6 41.8L63.7 42.7L63.6 43.6L63.4 44.4L63.1 45.2L62.7 45.9L62.2 46.5L61.6 47.0L61.0 47.4L60.4 47.6L59.7 47.7L59.1 47.7L59.0 46.5L59.3 46.3L59.7 46.1L60.0 45.8L60.3 45.5L60.6 45.2L60.8 44.8L60.9 44.3L61.0 43.9L61.0 43.4L60.9 42.9L60.8 42.4L60.6 42.0L60.3 41.5L60.0 41.1L59.5 40.8L59.1 40.5L58.5 40.2L57.9 40.1L57.3 40.0L56.7 40.0L56.1 40.2L55.4 40.4L54.8 40.7L54.2 41.1L53.7 41.7L53.2 42.3L52.8 43.0L52.6 43.8L52.4 44.6L52.4 45.5L52.5 46.4L52.7 47.4L53.1 48.3L53.7 49.1L54.4 49.9L55.2 50.6L56.2 51.2L57.3 51.7L58.4 52.0L59.7 52.1L61.0 52.0L62.3 51.8L63.7 51.3L64.9 50.6L66.1 49.7L67.2 48.5L68.1 47.2L68.9 45.7L69.4 44.0L69.7 42.3L69.7 40.4L69.4 38.5L68.8 36.6L67.9 34.7L66.7 32.9L65.2 31.3L63.4 29.9L61.3 28.7L59.0 27.8L56.5 27.3L53.8 27.1L51.1 27.4L48.3 28.0L45.6 29.2L43.0 30.8L40.6 32.8L38.4 35.3L36.6 38.1L35.2 41.4L34.3 44.9ZM27 41C21 56 14 72 4 92C14 82 25 66 34 44Z"/><path transform="translate(33.5 35.0) rotate(-179.9) scale(1.60)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(50.0 23.5) rotate(-131.2) scale(1.40)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(66.6 27.5) rotate(-80.5) scale(1.20)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(73.2 40.2) rotate(-28.8) scale(1.00)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(68.4 52.0) rotate(25.7) scale(0.80)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(57.1 54.7) rotate(87.0) scale(0.60)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(25.0 55.0) rotate(160.0) scale(1.20)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(18.0 68.0) rotate(165.0) scale(1.10)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(11.0 80.0) rotate(170.0) scale(0.90)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(31.0 52.0) rotate(20.0) scale(1.00)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/><path transform="translate(25.0 66.0) rotate(25.0) scale(0.90)" d="M0 -3C3 -9 10 -11 13 -6C15 -2 13 2 10 1C12 -2 10 -5 7 -4C4 -3 3 1 0 3Z"/>',
+};
+const STICKER_SETS = [
+  ['映画', [['reel', 'フィルム'], ['clapper', 'カチンコ'], ['popcorn', 'ポップコーン'], ['ticket', 'チケット'], ['camera', 'カメラ'], ['glasses3d', '3Dメガネ']]],
+  ['本・読書', [['book', '開いた本'], ['pen', '万年筆'], ['glasses', '眼鏡'], ['cup', 'コーヒー'], ['books', '積んだ本'], ['lamp', 'ランプ']]],
+  ['気持ち', [['heart', 'ハート'], ['crown', '王冠'], ['tear', '涙'], ['bolt', '稲妻'], ['moon', '月'], ['star', '星']]],
+  ['季節・小物', [['rose', '薔薇'], ['vine', '蔓'], ['sun', '太陽'], ['cat', 'ねこ'], ['key', '鍵'], ['scroll', 'アラベスク']]],
+];
+// one sticker as SVG; the rose's cut-out mask gets an id of its own on every card
+function stickerSVG(k, uid){
+  const body = (STICKERS[k] || '').replace(/rosecut/g, `rosecut-${uid}`);
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">${body}</svg>`;
+}
+// stickers sit on the card's backing paper, under the photo and the text, in faint ink
+function stickersHTML(c){
+  const list = c.stickers || [];
+  if(!list.length) return '';
+  const base = String(c.id || 'pv').replace(/[^a-zA-Z0-9-]/g, '');
+  return `<div class="stickers">${list.map((s, i) =>
+    `<div class="stk" data-i="${i}" style="left:${s.x}%;top:${s.y}%;width:${s.s}cqw;transform:translate(-50%,-50%) rotate(${s.r}deg)">${stickerSVG(s.k, base + '-' + i)}</div>`).join('')}</div>`;
+}
+
+
 // chipped edges for the old-paper look: a seeded random outline, so each card
 // gets its own chips and keeps them every time it is drawn
 function seededRandom(str){
@@ -1671,7 +1756,7 @@ function cardHTML(c){
     : `<div class="art empty"></div>`;
   const look = cardLook(c);
   return `<div class="card-wrap" data-id="${c.id}">
-    <article class="${look.cls}" style="${look.style}">${decoHTML(look.deco)}${art}${infoHTML(c)}${stampHTML(c)}</article>
+    <article class="${look.cls}" style="${look.style}">${decoHTML(look.deco)}${stickersHTML(c)}${art}${infoHTML(c)}${stampHTML(c)}</article>
   </div>`;
 }
 
@@ -2138,6 +2223,7 @@ function collect(){
     deco: edDeco,
     dateStyle: edDateStyle,
     tags: [...edTags],
+    stickers: edStickers.map(st => ({k:st.k, x:Math.round(st.x * 10) / 10, y:Math.round(st.y * 10) / 10, s:st.s, r:st.r})),
   };
 }
 function todayStr(){
@@ -2153,6 +2239,9 @@ function updatePreview(){
   pvCard.className = look.cls;
   pvCard.setAttribute('style', look.style);
   $('pvDeco').innerHTML = decoHTML(look.deco);
+  $('pvStickers').innerHTML = stickersHTML(d);
+  const sel = $('pvStickers').querySelector(`.stk[data-i="${stkSel}"]`);
+  if(sel) sel.classList.add('sel');
   pvInfo.innerHTML = infoHTML(d);
   $('pvStamp').innerHTML = stampHTML(d);
 }
@@ -2236,6 +2325,7 @@ function openEditor(card){
   f.director.value = c.director || '';
   setGenre(c.genre);
   setTags(c.tags);
+  setStickers(c.stickers);
   const cast = c.cast || [];
   f.cast1.value = cast[0] || '';
   f.cast2.value = cast[1] || '';
@@ -2720,6 +2810,78 @@ function toast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
 }
+
+/* ---------- sticker editing (on the editor's preview card) ---------- */
+let edStickers = [], stkSel = -1, stkDrag = null;
+function setStickers(list){
+  edStickers = (list || []).filter(s => STICKERS[s.k]).map(s => Object.assign({}, s));
+  stkSel = -1;
+  $('stickerPalette').hidden = true;
+  renderStickerTools();
+}
+function renderStickerTools(){
+  const s = edStickers[stkSel];
+  $('stickerAdjust').hidden = !s;
+  if(s){
+    $('stkSize').value = s.s;
+    $('stkRot').value = s.r;
+  }
+  $('stickerToggle').textContent = $('stickerPalette').hidden ? 'スタンプを貼る' : 'スタンプを閉じる';
+}
+$('stickerPalette').innerHTML = STICKER_SETS.map(([name, items]) =>
+  `<div class="stk-group"><span>${name}</span><div>${items.map(([k, label]) =>
+    `<button type="button" data-k="${k}" title="${label}" aria-label="${label}">${stickerSVG(k, 'pal-' + k)}</button>`).join('')}</div></div>`).join('');
+$('stickerToggle').addEventListener('click', () => {
+  $('stickerPalette').hidden = !$('stickerPalette').hidden;
+  renderStickerTools();
+});
+// a new sticker lands on the lower half of the card (the text area) at a slight tilt
+$('stickerPalette').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]');
+  if(!b) return;
+  edStickers.push({k:b.dataset.k, x:50 + (Math.random() * 30 - 15), y:76 + (Math.random() * 10 - 5), s:30, r:Math.round(Math.random() * 30 - 15)});
+  stkSel = edStickers.length - 1;
+  updatePreview();
+  renderStickerTools();
+});
+$('stkSize').addEventListener('input', e => {
+  const s = edStickers[stkSel];
+  if(s){ s.s = Number(e.target.value); updatePreview(); }
+});
+$('stkRot').addEventListener('input', e => {
+  const s = edStickers[stkSel];
+  if(s){ s.r = Number(e.target.value); updatePreview(); }
+});
+$('stkDelete').addEventListener('click', () => {
+  if(stkSel < 0) return;
+  edStickers.splice(stkSel, 1);
+  stkSel = -1;
+  updatePreview();
+  renderStickerTools();
+});
+// drag a sticker with one finger; the photo and text let touches through to the stickers below
+pvCard.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.stickers .stk');
+  if(!el) return;
+  e.preventDefault();
+  stkSel = Number(el.dataset.i);
+  const s = edStickers[stkSel], rect = pvCard.getBoundingClientRect();
+  stkDrag = {id:e.pointerId, x:e.clientX, y:e.clientY, sx:s.x, sy:s.y, w:rect.width, h:rect.height, el};
+  pvCard.setPointerCapture(e.pointerId);
+  pvCard.querySelectorAll('.stk').forEach(x => x.classList.toggle('sel', x === el));
+  renderStickerTools();
+});
+pvCard.addEventListener('pointermove', e => {
+  if(!stkDrag || e.pointerId !== stkDrag.id) return;
+  const s = edStickers[stkSel], d = stkDrag;
+  s.x = clamp(d.sx + (e.clientX - d.x) / d.w * 100, 0, 100);
+  s.y = clamp(d.sy + (e.clientY - d.y) / d.h * 100, 0, 100);
+  d.el.style.left = s.x + '%';
+  d.el.style.top = s.y + '%';
+});
+['pointerup', 'pointercancel'].forEach(t => pvCard.addEventListener(t, () => {
+  if(stkDrag){ stkDrag = null; updatePreview(); }
+}));
 
 /* ---------- tags ---------- */
 // free words like 泣ける or 2026年ベスト. Stored without the '#', shown with it.
