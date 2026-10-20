@@ -787,7 +787,7 @@
   /* home screen icon picker */
   .icon-preview{width:112px;height:112px;margin:0 auto 18px;border-radius:22.5%;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.3);}
   .icon-preview svg, .icon-grid svg{display:block;width:100%;height:100%;}
-  .icon-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  .icon-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
   .icon-grid button{
     padding:0;border:2px solid transparent;border-radius:24%;overflow:hidden;cursor:pointer;
     background:none;aspect-ratio:1/1;
@@ -2592,12 +2592,13 @@ $('titleFontClose').addEventListener('click', () => closeLayers());
 applyTitleFont(savedTitleFont());
 
 /* ---------- home screen icon ---------- */
-// The icon designs A–E from the design round (design/icon-options.html), drawn on a card color. The chosen icon is
+// The icon designs A–E from the design round (design/icon-options.html) plus E-2 (the frame with
+// facing arabesques, the app's own icon), drawn on a card color. The chosen icon is
 // turned into PNGs and handed to the phone through the apple-touch-icon link and a generated
 // manifest; the phone reads them at the moment the app is added to the home screen.
 const ICON_KEY = APP_ID + '-icon';
-const ICON_DESIGNS = [['A', 'カードの束'], ['B', '消印'], ['C', 'フィルム×本'], ['D', '頭文字'], ['E', '額縁']];
-const DEFAULT_ICON = {design:'E', color:'#6e2433'};
+const ICON_DESIGNS = [['A', 'カードの束'], ['B', '消印'], ['C', 'フィルム×本'], ['D', '頭文字'], ['E', '額縁'], ['E-2', '額縁+唐草']];
+const DEFAULT_ICON = {design:'E-2', color:'#6e2433'};
 
 function mixHex(a, b, t){
   const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
@@ -2630,6 +2631,9 @@ function iconFrame(c){
   return `<path d="${p}" fill="none" stroke="${c.fg}" stroke-width="18"/>
     <path d="${p}" fill="none" stroke="${c.fg}" stroke-width="6" transform="translate(512 512) scale(.86) translate(-512 -512)"/>`;
 }
+const iconOrnament = (color, width) =>
+  `<g fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round">${ARABESQUE_HALF}
+    <g transform="scale(-1,1)">${ARABESQUE_HALF}</g><path d="M0 -6 C3 -2 3 2 0 6 C-3 2 -3 -2 0 -6Z"/></g>`;
 const ICON_DRAW = {
   'A': c => `<g transform="translate(512 548)">
       <g transform="rotate(-17) translate(-70 18)"><rect x="-200" y="-290" width="400" height="580" rx="26" fill="${c.rose}"/></g>
@@ -2664,6 +2668,10 @@ const ICON_DRAW = {
   'D': c => `<text x="512" y="640" text-anchor="middle" font-family="Anton" font-size="470" letter-spacing="6" fill="${c.fg}">CA</text>
       <rect x="252" y="700" width="520" height="12" fill="${c.fg}"/>${iconStars(512, 800, 36, 96, 3, c.gold)}`,
   'E': c => `${iconFrame(c)}${iconStar(512, 520, 190, c.gold)}`,
+  'E-2': c => `${iconFrame(c)}
+      <g transform="translate(512 455) scale(7.2)">${iconOrnament(c.gold, 1.8)}</g>
+      <g transform="translate(512 569) rotate(180) scale(7.2)">${iconOrnament(c.gold, 1.8)}</g>
+      <path d="M512 488 L536 512 L512 536 L488 512 Z" fill="${c.gold}"/>`,
 };
 // scale < 1 leaves a margin (Android's round / squircle masks crop the edges)
 function iconSVG(pref, uid, fontCSS = '', scale = 1){
