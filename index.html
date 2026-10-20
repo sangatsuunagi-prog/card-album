@@ -692,13 +692,20 @@
   .sticker-palette{margin:12px auto 0;max-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:left;}
   .stk-group span{display:block;font-size:11px;color:var(--muted);margin:4px 2px 4px;}
   .stk-group div{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px;}
-  .stk-group button{aspect-ratio:1/1;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);cursor:pointer;
+  .stk-group div > *{min-width:0;}
+  .stk-group button{padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);cursor:pointer;
     fill:var(--text);color:var(--text);}
-  .stk-group button svg{display:block;width:100%;height:100%;}
+  .stk-group button svg{display:block;width:100%;height:auto;}  /* height follows the 1:1 viewBox */
+  .sticker-palette{overflow:hidden;}
   .sticker-adjust{max-width:320px;margin:10px auto 0;display:flex;flex-direction:column;gap:8px;align-items:stretch;}
   .sticker-adjust label{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--on-app-muted);}
   .sticker-adjust input{flex:1;accent-color:var(--accent);}
   .sticker-adjust .text-btn{align-self:center;}
+  .stk-handle{
+    position:absolute;z-index:4;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;
+    background:var(--accent);color:#fff;font-size:17px;line-height:30px;text-align:center;
+    box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
+  }
 
   .form{
     color:var(--text);
@@ -1205,6 +1212,7 @@
           <div class="art empty" id="pvArt"></div>
           <div id="pvInfo" class="info-holder"></div>
           <div id="pvStamp"></div>
+          <div class="stk-handle" id="stkHandle" hidden aria-label="回す">↺</div>
         </article>
       </div>
       <div id="cropControls" hidden>
@@ -1224,9 +1232,8 @@
         <button type="button" class="text-btn" id="stickerToggle">スタンプを貼る</button>
         <div class="sticker-palette" id="stickerPalette" hidden></div>
         <div class="sticker-adjust" id="stickerAdjust" hidden>
-          <p class="crop-hint">スタンプを指で動かせます</p>
+          <p class="crop-hint">スタンプは指で動かし、↺ をなぞると回せます</p>
           <label>大きさ<input type="range" id="stkSize" min="10" max="80" step="1"></label>
-          <label>傾き<input type="range" id="stkRot" min="-180" max="180" step="1"></label>
           <button type="button" class="text-btn" id="stkDelete">このスタンプを外す</button>
         </div>
       </div>
@@ -2240,6 +2247,7 @@ function updatePreview(){
   $('pvStickers').innerHTML = stickersHTML(d);
   const sel = $('pvStickers').querySelector(`.stk[data-i="${stkSel}"]`);
   if(sel) sel.classList.add('sel');
+  placeStickerHandle();
   pvInfo.innerHTML = infoHTML(d);
   $('pvStamp').innerHTML = stampHTML(d);
 }
@@ -2817,14 +2825,24 @@ function setStickers(list){
   $('stickerPalette').hidden = true;
   renderStickerTools();
 }
+function placeStickerHandle(){
+  const h = $('stkHandle'), s = edStickers[stkSel];
+  h.hidden = !s;
+  if(!s) return;
+  const w = pvCard.clientWidth, ht = pvCard.clientHeight;
+  const cx = s.x / 100 * w, cy = s.y / 100 * ht, r = s.s / 100 * w * 0.5 * 1.25 + 8;
+  const a = (s.r - 45) * Math.PI / 180;
+  h.style.left = clamp(cx + r * Math.cos(a), 15, w - 15) + 'px';
+  h.style.top = clamp(cy + r * Math.sin(a), 15, ht - 15) + 'px';
+}
 function renderStickerTools(){
   const s = edStickers[stkSel];
   $('stickerAdjust').hidden = !s;
   if(s){
     $('stkSize').value = s.s;
-    $('stkRot').value = s.r;
   }
   $('stickerToggle').textContent = $('stickerPalette').hidden ? 'スタンプを貼る' : 'スタンプを閉じる';
+  placeStickerHandle();
 }
 $('stickerPalette').innerHTML = STICKER_SETS.map(([name, items]) =>
   `<div class="stk-group"><span>${name}</span><div>${items.map(([k, label]) =>
@@ -2846,10 +2864,6 @@ $('stkSize').addEventListener('input', e => {
   const s = edStickers[stkSel];
   if(s){ s.s = Number(e.target.value); updatePreview(); }
 });
-$('stkRot').addEventListener('input', e => {
-  const s = edStickers[stkSel];
-  if(s){ s.r = Number(e.target.value); updatePreview(); }
-});
 $('stkDelete').addEventListener('click', () => {
   if(stkSel < 0) return;
   edStickers.splice(stkSel, 1);
@@ -2859,6 +2873,16 @@ $('stkDelete').addEventListener('click', () => {
 });
 // drag a sticker with one finger; the photo and text let touches through to the stickers below
 pvCard.addEventListener('pointerdown', e => {
+  if(e.target.id === 'stkHandle' && edStickers[stkSel]){
+    // turning: the angle of the finger around the sticker's centre, relative to where it started
+    e.preventDefault();
+    const s = edStickers[stkSel], rect = pvCard.getBoundingClientRect();
+    const cx = rect.left + s.x / 100 * rect.width, cy = rect.top + s.y / 100 * rect.height;
+    stkDrag = {id:e.pointerId, turn:true, cx, cy, r0:s.r, a0:Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI,
+      el:pvCard.querySelector(`.stickers .stk[data-i="${stkSel}"]`)};
+    pvCard.setPointerCapture(e.pointerId);
+    return;
+  }
   const el = e.target.closest('.stickers .stk');
   if(!el) return;
   e.preventDefault();
@@ -2872,10 +2896,18 @@ pvCard.addEventListener('pointerdown', e => {
 pvCard.addEventListener('pointermove', e => {
   if(!stkDrag || e.pointerId !== stkDrag.id) return;
   const s = edStickers[stkSel], d = stkDrag;
+  if(d.turn){
+    const a = Math.atan2(e.clientY - d.cy, e.clientX - d.cx) * 180 / Math.PI;
+    s.r = Math.round(((d.r0 + a - d.a0) % 360 + 540) % 360 - 180);
+    if(d.el) d.el.style.transform = `translate(-50%,-50%) rotate(${s.r}deg)`;
+    placeStickerHandle();
+    return;
+  }
   s.x = clamp(d.sx + (e.clientX - d.x) / d.w * 100, 0, 100);
   s.y = clamp(d.sy + (e.clientY - d.y) / d.h * 100, 0, 100);
   d.el.style.left = s.x + '%';
   d.el.style.top = s.y + '%';
+  placeStickerHandle();
 });
 ['pointerup', 'pointercancel'].forEach(t => pvCard.addEventListener(t, () => {
   if(stkDrag){ stkDrag = null; updatePreview(); }
