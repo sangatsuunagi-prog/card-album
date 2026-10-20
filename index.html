@@ -1261,7 +1261,7 @@
 
         <div class="row2">
           <div class="field" data-field="year">
-            <label for="fYear">発表年<span class="req">*</span></label>
+            <label for="fYear">発表年<span class="opt">任意</span></label>
             <input type="text" id="fYear" inputmode="numeric" maxlength="4" placeholder="2024">
             <div class="err-msg">数字で入力してください</div>
           </div>
@@ -2448,7 +2448,7 @@ function validate(d){
   if(!d.title) bad.push('title');
   if(d.type === 'movie' && !d.director) bad.push('director');
   if(d.type === 'novel' && !d.author) bad.push('author');
-  if(!/^\d{1,4}$/.test(d.year)) bad.push('year');
+  if(d.year && !/^\d{1,4}$/.test(d.year)) bad.push('year');  // optional, but digits when given
   if(!d.rating) bad.push('rating');
   document.querySelectorAll('.field[data-field]').forEach(el =>
     el.classList.toggle('invalid', bad.includes(el.dataset.field)));
