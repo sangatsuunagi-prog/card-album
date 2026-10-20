@@ -39,6 +39,8 @@
     --error:#e0826b;
     --toast-bg:#efe9df;
     --toast-text:#17140f;
+    --series-movie:#b5482f;  /* charts: checked with the dataviz palette validator on both themes */
+    --series-novel:#2a7fb8;
     color-scheme:dark;
     /* album / viewer background (changeable from the menu) */
     --app-bg:#0f0e0c;
@@ -349,6 +351,11 @@
     margin-bottom:2cqw;
   }
   .stars .off{color:rgba(var(--ink-rgb),.2);}
+  /* これから / 途中 cards say so where the stars would be */
+  .stars.status{font-size:3.4cqw;line-height:4.8cqw;letter-spacing:.12em;color:rgba(var(--ink-rgb),.8);font-weight:700;}
+  .stars.status::before{content:'';display:inline-block;width:2.2cqw;height:2.2cqw;border-radius:50%;
+    border:.4cqw solid currentColor;margin-right:1.4cqw;vertical-align:.2cqw;}
+  .stars.status.doing::before{background:linear-gradient(90deg, currentColor 50%, transparent 50%);}
   .meta-line{
     flex-shrink:0;
     display:flex;
@@ -705,6 +712,10 @@
     cursor:pointer;
   }
   .seg button.active{background:var(--accent);color:#fff;}
+  .seg.seg3{grid-template-columns:repeat(3,1fr);}
+  #sheet.themed .seg{background:rgba(var(--ink-rgb),.08);}
+  #sheet.themed .seg button{color:rgba(var(--ink-rgb),.7);}
+  #sheet.themed .seg button.active{background:var(--accent);color:#fff;}
 
   .field{margin-bottom:16px;}
   .field label, .field .label{
@@ -767,7 +778,7 @@
 
   /* ---------- review / stats page ---------- */
   .stats{
-    position:fixed;inset:0;z-index:50;
+    position:fixed;inset:0;z-index:35;  /* under the memo sheet (41), which opens from the calendar */
     background:var(--bg);color:var(--text);
     display:flex;flex-direction:column;
   }
@@ -805,6 +816,38 @@
   .bars .bar{height:100%;min-width:2px;background:var(--accent);border-radius:0 4px 4px 0;}
   .bars .val{font-size:12px;color:var(--muted);text-align:right;}
   .stat-pair{display:grid;grid-template-columns:1fr;gap:12px;}
+  #statsMode{margin-bottom:14px;}
+  /* SVG charts */
+  .chart{display:block;width:100%;height:auto;overflow:visible;}
+  .chart .grid{stroke:var(--border);stroke-width:1;}
+  .chart .axis{font-size:10px;fill:var(--muted);}
+  .chart .end, .chart .lbl{font-size:11px;fill:var(--text);}
+  .chart .lbl .num{fill:var(--muted);}
+  .chart .hit{fill:transparent;cursor:pointer;}
+  .chart .cursor{stroke:var(--muted);stroke-width:1;}
+  .legend{display:flex;gap:14px;font-size:12px;margin:0 0 6px;}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;}
+  /* month calendar */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;font-size:16px;font-weight:700;}
+  .cal-head .icon-btn{color:var(--text);font-size:26px;}
+  .cal-sum{font-size:12px;color:var(--muted);text-align:center;margin:0 0 10px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .cal-w{font-size:11px;color:var(--muted);text-align:center;padding:4px 0;}
+  .cal-day{aspect-ratio:1/1;position:relative;border-radius:6px;background:var(--panel);border:1px solid var(--border);
+    padding:0;color:var(--muted);font:inherit;overflow:hidden;}
+  .cal-day .d{position:absolute;left:4px;top:2px;font-size:10.5px;}
+  .cal-day.has{cursor:pointer;border-color:transparent;}
+  .cal-day.has .d{color:#fff;text-shadow:0 0 3px rgba(0,0,0,.8);font-weight:700;}
+  .cal-day .thumb{position:absolute;inset:0;background-size:cover;background-position:center;}
+  .cal-day .more{position:absolute;right:3px;bottom:3px;min-width:16px;height:16px;border-radius:8px;background:rgba(0,0,0,.65);
+    color:#fff;font-size:10px;line-height:16px;text-align:center;padding:0 3px;}
+  .cal-day.sel{outline:2px solid var(--accent);outline-offset:1px;}
+  .cal-list{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
+  .cal-item{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:8px;color:var(--text);font:inherit;text-align:left;cursor:pointer;}
+  .cal-item .ti{width:40px;height:40px;border-radius:6px;background-size:cover;background-position:center;flex-shrink:0;}
+  .cal-item .tt{flex:1;min-width:0;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cal-item .ty{font-size:11.5px;color:var(--muted);}
 
   .star-input{display:flex;gap:4px;}
   .star-input button{
@@ -818,6 +861,7 @@
   }
   .star-input button.on{color:var(--star);}
 
+  .editor:not([data-status="done"]) [data-field="rating"] .req{display:none;}
   .editor[data-type="movie"] .novel-only,
   .editor[data-type="novel"] .movie-only{display:none;}
 
@@ -915,6 +959,10 @@
     <span id="searchChipText"></span>
     <button id="searchClear" aria-label="検索をやめる">✕</button>
   </div>
+  <div class="search-chip" id="statusFilterChip" hidden>
+    <span id="statusFilterText"></span>
+    <button id="statusFilterClear" aria-label="状態の絞り込みをやめる">✕</button>
+  </div>
   <div class="search-chip" id="tagFilterChip" hidden>
     <span id="tagFilterText"></span>
     <button id="tagFilterClear" aria-label="タグの絞り込みをやめる">✕</button>
@@ -935,6 +983,10 @@
           <option value="title">タイトル順</option>
         </select>
       </label>
+    </div>
+    <div class="menu-tags">
+      <span class="menu-tags-label">状態で絞り込む</span>
+      <div class="chips" id="menuStatusChips"></div>
     </div>
     <div class="menu-tags" id="menuTags" hidden>
       <span class="menu-tags-label">タグで絞り込む</span>
@@ -981,6 +1033,10 @@
   </div>
   <div class="stats-body">
     <div class="stats-inner">
+      <div class="seg small" id="statsMode">
+        <button data-mode="graph">グラフ</button>
+        <button data-mode="cal">カレンダー</button>
+      </div>
       <div class="chips stats-years" id="statsYears"></div>
       <div id="statsContent"></div>
     </div>
@@ -994,6 +1050,7 @@
   <h2 id="sheetTitle"></h2>
   <p class="sub" id="sheetSub"></p>
   <div class="memo-tags" id="memoTags" hidden></div>
+  <div class="seg small seg3" id="memoStatusSeg"></div>
   <div class="field">
     <label for="dateInput" id="dateLabel">見た日</label>
     <div class="date-row">
@@ -1180,6 +1237,11 @@
           </div>
         </div>
 
+        <div class="field">
+          <span class="label">状態</span>
+          <div class="seg seg3" id="statusSeg"></div>
+        </div>
+
         <div class="field" data-field="rating">
           <span class="label">評価<span class="req">*</span></span>
           <div class="star-input" id="starInput">
@@ -1317,6 +1379,8 @@ let filter = 'all';
 
 let query = '';
 let tagFilter = '';  // show only the cards with this tag
+let statusFilter = '';  // '', 'done', 'doing' or 'want'
+const statusOf = c => c.status || 'done';  // cards made before statuses existed are finished ones
 let sortBy = 'seen';
 try{ sortBy = localStorage.getItem(APP_ID + '-sort') || 'seen'; }catch(err){}
 
@@ -1345,6 +1409,7 @@ function visibleCards(){
   return cards
     .filter(c => filter === 'all' || c.type === filter)
     .filter(c => !tagFilter || (c.tags || []).includes(tagFilter))
+    .filter(c => !statusFilter || statusOf(c) === statusFilter)
     .filter(c => !words.length || (h => words.every(w => h.includes(w)))(haystack(c)))
     .sort(SORTS[sortBy] || bySeen);
 }
@@ -1413,7 +1478,9 @@ function infoHTML(c){
       <div class="t">${esc(title)}</div>
       <div class="y">${esc(c.year)}</div>
     </div>
-    <div class="stars">${'★'.repeat(r)}<span class="off">${'★'.repeat(5 - r)}</span></div>
+    ${statusOf(c) === 'done'
+      ? `<div class="stars">${'★'.repeat(r)}<span class="off">${'★'.repeat(5 - r)}</span></div>`
+      : `<div class="stars status ${statusOf(c)}">${statusLabel(c.type, statusOf(c))}</div>`}
     ${body}${seen}
   </div>`;
 }
@@ -1957,6 +2024,7 @@ function openSheet(id){
     : [c.director, c.year].filter(Boolean).join(' ・ ');
   $('dateLabel').textContent = c.type === 'novel' ? '読んだ日' : '見た日';
   renderMemoTags(c);
+  renderMemoStatus(c);
   dateInput.value = c.date || '';
   memoInput.value = c.memo || '';
   saveStatus.textContent = '';
@@ -2000,7 +2068,7 @@ function scheduleSave(){
 }
 function closeSheetUI(){
   const id = sheetId;
-  saveSheet().then(() => { renderGrid(); refreshViewer(id); });
+  saveSheet().then(() => { renderGrid(); refreshViewer(id); if(!statsEl.hidden) renderStats(); });
   sheetId = null;
   memoInput.blur();
   dateInput.blur();
@@ -2051,6 +2119,7 @@ function collect(){
     deco: edDeco,
     dateStyle: edDateStyle,
     tags: [...edTags],
+    status: edStatus,
   };
 }
 function todayStr(){
@@ -2099,6 +2168,7 @@ function setType(t){
   setGenre(genre);
   editor.dataset.type = t;
   document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('active', b.dataset.type === t));
+  renderStatusSeg();
   updatePreview();
 }
 function setRating(v){
@@ -2149,6 +2219,7 @@ function openEditor(card){
   f.director.value = c.director || '';
   setGenre(c.genre);
   setTags(c.tags);
+  edStatus = card ? statusOf(card) : (statusFilter || 'done');
   const cast = c.cast || [];
   f.cast1.value = cast[0] || '';
   f.cast2.value = cast[1] || '';
@@ -2170,6 +2241,7 @@ function openEditor(card){
   document.querySelectorAll('.field.invalid').forEach(el => el.classList.remove('invalid'));
   setType(c.type || (filter === 'novel' ? 'novel' : 'movie'));
   setRating(c.rating || 0);
+  renderStatusSeg();
   editor.hidden = false;
   $('editorBody').scrollTop = 0;
   clearImage();
@@ -2362,7 +2434,7 @@ function validate(d){
   if(d.type === 'movie' && !d.director) bad.push('director');
   if(d.type === 'novel' && !d.author) bad.push('author');
   if(!/^\d{1,4}$/.test(d.year)) bad.push('year');
-  if(!d.rating) bad.push('rating');
+  if(d.status === 'done' && !d.rating) bad.push('rating');  // no stars yet for これから / 途中
   document.querySelectorAll('.field[data-field]').forEach(el =>
     el.classList.toggle('invalid', bad.includes(el.dataset.field)));
   if(bad.length){
@@ -2555,7 +2627,7 @@ lightScheme.addEventListener('change', () => {
 const menu = $('menu');
 $('menuBtn').addEventListener('click', e => {
   e.stopPropagation();
-  if(menu.hidden) renderMenuTags();
+  if(menu.hidden){ renderMenuTags(); renderMenuStatus(); }
   menu.hidden = !menu.hidden;
 });
 document.addEventListener('click', e => { if(!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
@@ -2696,12 +2768,70 @@ $('memoTags').addEventListener('click', e => {
   setTagFilter(b.dataset.tag);
 });
 
+/* ---------- status: これから / 途中 / 見た・読んだ ---------- */
+const STATUSES = ['done', 'doing', 'want'];
+function statusLabel(type, st){
+  const novel = type === 'novel';
+  return {done:novel ? '読んだ' : '見た', doing:novel ? '読んでいる途中' : '見ている途中', want:novel ? 'これから読む' : 'これから見る'}[st];
+}
+let edStatus = 'done';
+function renderStatusSeg(){
+  editor.dataset.status = edStatus;  // stars are only required once it is finished
+  $('statusSeg').innerHTML = STATUSES.map(st =>
+    `<button type="button" data-status="${st}" class="${st === edStatus ? 'active' : ''}">${statusLabel(edType, st)}</button>`).join('');
+}
+$('statusSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-status]');
+  if(!b) return;
+  edStatus = b.dataset.status;
+  renderStatusSeg();
+  updatePreview();
+});
+
+// the memo sheet can move a card along (e.g. finished reading); finishing fills in today's date
+function renderMemoStatus(c){
+  $('memoStatusSeg').innerHTML = STATUSES.map(st =>
+    `<button type="button" data-status="${st}" class="${st === statusOf(c) ? 'active' : ''}">${statusLabel(c.type, st)}</button>`).join('');
+}
+$('memoStatusSeg').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-status]');
+  const c = findCard(sheetId);
+  if(!b || !c || b.dataset.status === statusOf(c)) return;
+  c.status = b.dataset.status;
+  if(c.status === 'done' && !dateInput.value) dateInput.value = todayStr();
+  renderMemoStatus(c);
+  await saveSheet();
+  c.updatedAt = Date.now();
+  await DB.put(c);
+  saveStatus.textContent = '保存しました';
+});
+
+function setStatusFilter(st){
+  statusFilter = st || '';
+  $('statusFilterChip').hidden = !statusFilter;
+  $('statusFilterText').textContent = `「${{done:'見た・読んだ', doing:'途中', want:'これから'}[statusFilter] || ''}」だけ表示中`;
+  renderGrid();
+}
+$('statusFilterClear').addEventListener('click', () => setStatusFilter(''));
+function renderMenuStatus(){
+  $('menuStatusChips').innerHTML = [['done', '見た・読んだ'], ['doing', '途中'], ['want', 'これから']].map(([st, label]) =>
+    `<button type="button" class="chip${st === statusFilter ? ' on' : ''}" data-status="${st}">${label}<span class="n">${cards.filter(c => statusOf(c) === st).length}</span></button>`).join('');
+}
+$('menuStatusChips').addEventListener('click', e => {
+  const b = e.target.closest('.chip[data-status]');
+  if(!b) return;
+  setStatusFilter(b.dataset.status === statusFilter ? '' : b.dataset.status);
+  $('menu').hidden = true;
+});
+
 /* ---------- review / stats page ---------- */
-// counted by the watched / read date; "すべて" also counts cards without a date
+// Only finished cards count, by their watched / read date ("すべて" also counts undated ones).
+// Two modes: graphs, and a month calendar with the cards on the days they were finished.
 const statsEl = $('stats');
-let statsYear = 'all';
+let statsYear = 'all', statsMode = 'graph', calMonth = '', calDay = 0;
+const doneCards = () => cards.filter(c => statusOf(c) === 'done');
 function cardYears(){
-  return [...new Set(cards.filter(c => c.date).map(c => c.date.slice(0, 4)))].sort().reverse();
+  return [...new Set(doneCards().filter(c => c.date).map(c => c.date.slice(0, 4)))].sort().reverse();
 }
 function topCounts(values, limit = 5){
   const n = new Map();
@@ -2716,46 +2846,97 @@ function barList(rows, unit){
      <span class="track"><span class="bar" style="display:block;width:${n / max * 100}%"></span></span>
      <span class="val">${n}${unit}</span>`).join('')}</div>`;
 }
+const tick = max => { const step = Math.max(1, Math.ceil(max / 3)); return [step, step * 3]; };
+
+// pace through the year: one line per type, months along the bottom
+function paceChart(year, list){
+  const months = Array.from({length:12}, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
+  const series = [['movie', '映画', '本', 'var(--series-movie)'], ['novel', '小説', '冊', 'var(--series-novel)']].map(([type, name, unit, color]) =>
+    ({type, name, unit, color, v:months.map(m => list.filter(c => c.type === type && c.date.startsWith(m)).length)}));
+  const [step, top] = tick(Math.max(1, ...series.flatMap(s => s.v)));
+  const W = 320, H = 180, L = 24, R = 34, T = 10, B = 22;
+  const x = i => L + i * (W - L - R) / 11, y = v => T + (1 - v / top) * (H - T - B);
+  const grid = [0, step, step * 2, top].map(v =>
+    `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end">${v}</text>`).join('');
+  // end labels: keep the two names at least 12px apart when the lines finish close together
+  const ends = series.map(s => y(s.v[11]) + 4);
+  if(Math.abs(ends[0] - ends[1]) < 12){
+    const mid = (ends[0] + ends[1]) / 2, up = series[0].v[11] >= series[1].v[11] ? 0 : 1;
+    ends[up] = mid - 6; ends[1 - up] = mid + 6;
+  }
+  const lines = series.map((s, k) => `
+    <polyline fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+      points="${s.v.map((v, i) => `${x(i)},${y(v)}`).join(' ')}"/>
+    ${s.v.map((v, i) => v ? `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${s.color}" stroke="var(--panel)" stroke-width="2"/>` : '').join('')}
+    <text class="end" x="${x(11) + 7}" y="${ends[k]}">${s.name}</text>`).join('');
+  const labels = months.map((m, i) => `<text class="axis" x="${x(i)}" y="${H - 6}" text-anchor="middle">${i + 1}</text>`).join('');
+  const hits = months.map((m, i) => `<rect class="hit" data-i="${i}" x="${x(i) - 12}" y="${T}" width="24" height="${H - T - B}"/>`).join('');
+  paceRows = months.map((m, i) => `${i + 1}月：映画${series[0].v[i]}本・小説${series[1].v[i]}冊`);
+  return `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join('')}</div>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="月ごとの映画と小説の数">${grid}${labels}${lines}${hits}
+      <line class="cursor" id="paceCursor" x1="0" x2="0" y1="${T}" y2="${H - B}" visibility="hidden"/></svg>
+    <div class="col-readout" id="paceReadout">グラフを押すと、その月の数が出ます</div>`;
+}
+let paceRows = [];
+
+// genre profile: the six most chosen genres as a radar (bars when there are fewer than three)
+function genreRadar(list){
+  const rows = topCounts(list.flatMap(c => splitGenres(c.genre)), 6);
+  if(rows.length < 3) return barList(rows, '件');
+  const W = 320, H = 250, cx = 160, cy = 125, Rr = 82, n = rows.length, max = rows[0][1];
+  const pt = (i, r) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+  const ring = f => `<polygon class="grid" fill="none" points="${rows.map((_, i) => pt(i, Rr * f).join(',')).join(' ')}"/>`;
+  const axes = rows.map((_, i) => `<line class="grid" x1="${cx}" y1="${cy}" x2="${pt(i, Rr)[0]}" y2="${pt(i, Rr)[1]}"/>`).join('');
+  const data = rows.map(([, v], i) => pt(i, Rr * v / max));
+  const labels = rows.map(([name, v], i) => {
+    const [lx, ly] = pt(i, Rr + 18), anchor = Math.abs(lx - cx) < 8 ? 'middle' : lx > cx ? 'start' : 'end';
+    return `<text class="lbl" x="${lx}" y="${ly + 4}" text-anchor="${anchor}">${esc(name)} <tspan class="num">${v}</tspan></text>`;
+  }).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="よく選んだジャンル">
+    ${ring(1 / 3)}${ring(2 / 3)}${ring(1)}${axes}
+    <polygon points="${data.map(p => p.join(',')).join(' ')}" fill="var(--accent)" fill-opacity=".12" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+    ${data.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--accent)" stroke="var(--panel)" stroke-width="2"/>`).join('')}
+    ${labels}</svg>`;
+}
+
 function renderStats(){
+  $('statsMode').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === statsMode));
+  $('statsYears').hidden = statsMode !== 'graph';
+  if(statsMode === 'cal') return renderCalendar();
   const years = cardYears();
   if(statsYear !== 'all' && !years.includes(statsYear)) statsYear = 'all';
   $('statsYears').innerHTML = [['all', 'すべて'], ...years.map(y => [y, y + '年'])].map(([k, label]) =>
     `<button type="button" class="chip${k === statsYear ? ' on' : ''}" data-year="${k}">${label}</button>`).join('');
-  const list = statsYear === 'all' ? cards : cards.filter(c => (c.date || '').startsWith(statsYear));
+  const done = doneCards();
+  const list = statsYear === 'all' ? done : done.filter(c => (c.date || '').startsWith(statsYear));
   if(!list.length){
-    $('statsContent').innerHTML = '<p class="stat-empty">まだカードがありません</p>';
+    $('statsContent').innerHTML = '<p class="stat-empty">まだ「見た・読んだ」カードがありません</p>';
     return;
   }
   const movies = list.filter(c => c.type === 'movie'), novels = list.filter(c => c.type === 'novel');
   const rated = list.filter(c => c.rating);
   const avg = rated.length ? (rated.reduce((a, c) => a + c.rating, 0) / rated.length).toFixed(1) : '–';
 
-  // columns: months of the chosen year, or one column per year for すべて
-  let cols;
+  let timeline;
   if(statsYear === 'all'){
-    cols = years.slice().reverse().map(y => {
-      const cs = list.filter(c => (c.date || '').startsWith(y));
-      return {label:y.slice(2), full:y + '年', cs};
-    });
+    // one column per year
+    const cols = years.slice().reverse().map(y => ({label:y.slice(2), full:y + '年', cs:list.filter(c => (c.date || '').startsWith(y))}));
+    const max = Math.max(1, ...cols.map(c => c.cs.length));
+    const peak = cols.reduce((a, c, i) => c.cs.length > cols[a].cs.length ? i : a, 0);
+    paceRows = cols.map(c => `${c.full}：映画${c.cs.filter(x => x.type === 'movie').length}本・小説${c.cs.filter(x => x.type === 'novel').length}冊`);
+    timeline = cols.length ? `
+      <div class="cols" id="statCols">${cols.map((c, i) => `
+        <button type="button" class="col" data-i="${i}" aria-label="${paceRows[i]}">
+          ${i === peak ? `<span class="cap">${c.cs.length}</span>` : ''}
+          <span class="bar" style="height:${c.cs.length / max * 100}%"></span>
+        </button>`).join('')}</div>
+      <div class="col-labels">${cols.map(c => `<span>${c.label}</span>`).join('')}</div>
+      <div class="col-readout" id="paceReadout">棒を押すと内訳が出ます</div>` : '<p class="hint">見た日・読んだ日が入ったカードがまだありません</p>';
   }else{
-    cols = Array.from({length:12}, (_, i) => {
-      const m = `${statsYear}-${String(i + 1).padStart(2, '0')}`;
-      return {label:String(i + 1), full:`${i + 1}月`, cs:list.filter(c => c.date.startsWith(m))};
-    });
+    timeline = paceChart(statsYear, list);
   }
-  const max = Math.max(1, ...cols.map(c => c.cs.length));
-  const peak = cols.reduce((a, c, i) => c.cs.length > cols[a].cs.length ? i : a, 0);
-  const colChart = cols.length ? `
-    <div class="cols" id="statCols">${cols.map((c, i) => `
-      <button type="button" class="col${c.cs.length ? '' : ' zero'}" data-i="${i}" aria-label="${c.full} ${c.cs.length}件">
-        ${i === peak && c.cs.length ? `<span class="cap">${c.cs.length}</span>` : ''}
-        <span class="bar" style="height:${c.cs.length / max * 100}%"></span>
-      </button>`).join('')}</div>
-    <div class="col-labels">${cols.map(c => `<span>${c.label}</span>`).join('')}</div>
-    <div class="col-readout" id="colReadout">棒を押すと内訳が出ます</div>` : '<p class="hint">見た日・読んだ日が入ったカードがまだありません</p>';
 
   const ratingRows = [5, 4, 3, 2, 1].map(r => ['★'.repeat(r), list.filter(c => c.rating === r).length]).filter(r => r[1]);
-  const genres = topCounts(list.flatMap(c => splitGenres(c.genre)));
   const directors = topCounts(movies.map(c => c.director));
   const authors = topCounts(novels.map(c => c.author));
   const tags = topCounts(list.flatMap(c => c.tags || []).map(t => '#' + t));
@@ -2767,43 +2948,99 @@ function renderStats(){
       <div class="stat-tile"><div class="k">平均の評価</div><div class="v">${avg}<span class="u">★</span></div></div>
     </div>
     <section class="stat-card">
-      <h3>${statsYear === 'all' ? '年ごとの数' : '月ごとの数'}</h3>
-      <p class="hint">見た日・読んだ日で数えています</p>
-      ${colChart}
+      <h3>${statsYear === 'all' ? '年ごとの数' : 'ペースの移り変わり'}</h3>
+      <p class="hint">${statsYear === 'all' ? '見た日・読んだ日で数えています' : '月ごとに見た映画・読んだ小説の数'}</p>
+      ${timeline}
     </section>
+    <section class="stat-card"><h3>好みのジャンル</h3><p class="hint">よく選んだジャンル(上位6つ)</p>${genreRadar(list)}</section>
     <section class="stat-card"><h3>評価の分かれ方</h3><p class="hint">星の数ごとの件数</p>${barList(ratingRows, '件')}</section>
-    <section class="stat-card"><h3>よく選んだジャンル</h3><p class="hint">上位5つ</p>${barList(genres, '件')}</section>
     <div class="stat-pair">
       <section class="stat-card"><h3>よく見た監督</h3><p class="hint">上位5人</p>${barList(directors, '本')}</section>
       <section class="stat-card"><h3>よく読んだ作者</h3><p class="hint">上位5人</p>${barList(authors, '冊')}</section>
     </div>
     ${tags.length ? `<section class="stat-card"><h3>よく使ったタグ</h3><p class="hint">上位5つ</p>${barList(tags, '件')}</section>` : ''}`;
-  statsCols = cols;
 }
-let statsCols = [];
-function showCol(i){
-  const c = statsCols[i];
-  if(!c) return;
+function showPace(i){
+  if(!paceRows[i]) return;
+  $('paceReadout').textContent = paceRows[i];
   document.querySelectorAll('#statCols .col').forEach((el, k) => el.classList.toggle('active', k === i));
-  const m = c.cs.filter(x => x.type === 'movie').length, n = c.cs.length - m;
-  $('colReadout').textContent = `${c.full}：${c.cs.length}件（映画${m}本・小説${n}冊）`;
+  const hit = document.querySelector(`.chart .hit[data-i="${i}"]`), cur = $('paceCursor');
+  if(hit && cur){
+    const cx = Number(hit.getAttribute('x')) + 12;
+    cur.setAttribute('x1', cx); cur.setAttribute('x2', cx); cur.setAttribute('visibility', 'visible');
+  }
+}
+
+// month calendar: a photo (or the card's color) on each day something was finished
+function renderCalendar(){
+  const [y, m] = calMonth.split('-').map(Number);
+  const first = new Date(y, m - 1, 1).getDay(), days = new Date(y, m, 0).getDate();
+  const month = doneCards().filter(c => (c.date || '').startsWith(calMonth));
+  const byDay = new Map();
+  month.forEach(c => { const d = Number(c.date.slice(8, 10)); byDay.set(d, [...(byDay.get(d) || []), c]); });
+  if(calDay && !byDay.has(calDay)) calDay = 0;
+  const thumb = c => c.image ? `background-image:url(${c.image})` : `background-color:${esc(c.color || DEFAULT_COLOR)}`;
+  let cells = Array.from({length:first}, () => '<span class="cal-blank"></span>').join('');
+  for(let d = 1; d <= days; d++){
+    const cs = byDay.get(d);
+    cells += cs
+      ? `<button type="button" class="cal-day has${d === calDay ? ' sel' : ''}" data-day="${d}" aria-label="${m}月${d}日 ${cs.length}件">
+          <span class="thumb" style="${thumb(cs[0])}"></span><span class="d">${d}</span>${cs.length > 1 ? `<span class="more">${cs.length}</span>` : ''}</button>`
+      : `<span class="cal-day"><span class="d">${d}</span></span>`;
+  }
+  const picked = calDay ? byDay.get(calDay) : null;
+  const nM = month.filter(c => c.type === 'movie').length;
+  $('statsContent').innerHTML = `
+    <div class="cal-head">
+      <button type="button" class="icon-btn" id="calPrev" aria-label="前の月">‹</button>
+      <span>${y}年${m}月</span>
+      <button type="button" class="icon-btn" id="calNext" aria-label="次の月">›</button>
+    </div>
+    <p class="cal-sum">この月：映画${nM}本・小説${month.length - nM}冊</p>
+    <div class="cal-grid">${['日', '月', '火', '水', '木', '金', '土'].map(w => `<span class="cal-w">${w}</span>`).join('')}${cells}</div>
+    <div class="cal-list">${picked
+      ? picked.map(c => `<button type="button" class="cal-item" data-id="${c.id}">
+          <span class="ti" style="${thumb(c)}"></span><span class="tt">${esc(c.title)}</span><span class="ty">${c.type === 'novel' ? '小説' : '映画'}</span></button>`).join('')
+      : `<p class="hint">${month.length ? '写真のある日を押すと、その日のカードが出ます' : 'この月の「見た・読んだ」はまだありません'}</p>`}</div>`;
+}
+function shiftMonth(step){
+  const [y, m] = calMonth.split('-').map(Number), d = new Date(y, m - 1 + step, 1);
+  calMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  calDay = 0;
+  renderCalendar();
 }
 $('statsContent').addEventListener('click', e => {
-  const col = e.target.closest('.col[data-i]');
-  if(col) showCol(Number(col.dataset.i));
+  const t = e.target;
+  const col = t.closest('.col[data-i], .hit[data-i]');
+  if(col) return showPace(Number(col.dataset.i));
+  if(t.closest('#calPrev')) return shiftMonth(-1);
+  if(t.closest('#calNext')) return shiftMonth(1);
+  const day = t.closest('.cal-day[data-day]');
+  if(day){ calDay = Number(day.dataset.day); return renderCalendar(); }
+  const item = t.closest('.cal-item[data-id]');
+  if(item) openSheet(item.dataset.id);
 });
 $('statsContent').addEventListener('pointerover', e => {
-  const col = e.target.closest('.col[data-i]');
-  if(col && e.pointerType === 'mouse') showCol(Number(col.dataset.i));
+  const col = e.target.closest('.col[data-i], .hit[data-i]');
+  if(col && e.pointerType === 'mouse') showPace(Number(col.dataset.i));
 });
 $('statsYears').addEventListener('click', e => {
   const b = e.target.closest('.chip[data-year]');
   if(b){ statsYear = b.dataset.year; renderStats(); }
 });
+$('statsMode').addEventListener('click', e => {
+  const b = e.target.closest('button[data-mode]');
+  if(b){ statsMode = b.dataset.mode; renderStats(); }
+});
 $('statsBtn').addEventListener('click', () => {
   $('menu').hidden = true;
   const y = String(new Date().getFullYear());
   statsYear = cardYears().includes(y) ? y : 'all';
+  // the calendar opens on the latest month with a finished card (or this month)
+  const latest = doneCards().map(c => c.date || '').sort().pop();
+  const now = new Date();
+  calMonth = latest ? latest.slice(0, 7) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  calDay = 0;
   renderStats();
   statsEl.hidden = false;
   statsEl.querySelector('.stats-body').scrollTop = 0;
