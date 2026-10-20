@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0f0e0c">
+<meta name="color-scheme" content="light dark">
 <meta name="robots" content="noindex, nofollow">
 <!-- home-screen app: icon and full-screen launch -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -31,11 +32,40 @@
     --text:#efe9df;
     --muted:#a39c8c;
     --dim:#7d766a;
+    --label:#c7bfae;      /* form labels */
+    --press:#2a2925;      /* pressed buttons */
+    --rule:#33322c;       /* dividers */
+    --handle:#4a483f;     /* sheet handle, unselected stars in the form */
+    --error:#e0826b;
+    --toast-bg:#efe9df;
+    --toast-text:#17140f;
+    color-scheme:dark;
     /* album / viewer background (changeable from the menu) */
     --app-bg:#0f0e0c;
     --on-app:#efe9df;
     --on-app-muted:#7d766a;
     --app-line:rgba(255,255,255,.08);
+  }
+  /* the phone is in light mode: panels, sheets and forms turn light (the album background is
+     picked separately and keeps its own colors) */
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f3eee4;
+      --panel:#fbf8f2;
+      --panel-2:#ece6da;
+      --border:#d6cdbd;
+      --text:#1d1a17;
+      --muted:#6f6a62;
+      --dim:#8f887c;
+      --label:#6f6a62;
+      --press:#e4ddd0;
+      --rule:#ddd5c7;
+      --handle:#cfc6b6;
+      --error:#b5482f;
+      --toast-bg:#1d1a17;
+      --toast-text:#f3eee4;
+      color-scheme:light;
+    }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{
@@ -86,7 +116,9 @@
     font-weight:400;
     font-size:24px;
     letter-spacing:.04em;
+    line-height:1.25;
     margin:0;
+    white-space:nowrap;
   }
   .icon-btn{
     background:none;
@@ -98,7 +130,7 @@
     border-radius:50%;
     cursor:pointer;
   }
-  .icon-btn:active{background:#2a2925;}
+  .icon-btn:active{background:var(--press);}
   .tabs{
     display:flex;
     gap:4px;
@@ -183,7 +215,7 @@
     background:none;border:none;color:var(--on-app-muted);
     font-size:13px;width:26px;height:26px;border-radius:50%;cursor:pointer;flex-shrink:0;
   }
-  .menu button:active{background:#33322c;}
+  .menu button:active{background:var(--press);}
 
   /* ---------- grid ---------- */
   .grid{
@@ -465,7 +497,7 @@
     height:48px;
     border-radius:50%;
     border:1px solid var(--border);
-    background:rgba(27,27,27,.8);
+    background:color-mix(in srgb, var(--panel) 80%, transparent);
     color:var(--text);
     font-size:20px;
     cursor:pointer;
@@ -508,7 +540,7 @@
     width:40px;
     height:4px;
     border-radius:2px;
-    background:#4a483f;
+    background:var(--handle);
     margin:0 auto 14px;
   }
   .sheet h2{
@@ -669,7 +701,7 @@
     font-size:11px;
     font-weight:700;
     letter-spacing:.08em;
-    color:#c7bfae;
+    color:var(--label);
     margin-bottom:6px;
   }
   .req{color:var(--accent);margin-left:4px;}
@@ -679,12 +711,12 @@
     padding:11px 12px;
     background:var(--panel-2);
     border:1px solid var(--border);
-    color:#f2eee4;
+    color:var(--text);
     border-radius:8px;
     font-family:inherit;
     font-size:16px;
     outline:none;
-    color-scheme:dark;
+    color-scheme:inherit;
   }
   input:focus, textarea:focus, select:focus{border-color:var(--accent);}
   select{
@@ -695,15 +727,15 @@
     background-position:right 12px center;
   }
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .err-msg{display:none;font-size:12px;color:#e0826b;margin-top:6px;}
-  .field.invalid input{border-color:#e0826b;}
+  .err-msg{display:none;font-size:12px;color:var(--error);margin-top:6px;}
+  .field.invalid input{border-color:var(--error);}
   .field.invalid .err-msg{display:block;}
 
   .chips{display:flex;flex-wrap:wrap;gap:8px;}
   .chip{
     background:var(--panel-2);
     border:1px solid var(--border);
-    color:#c7bfae;
+    color:var(--label);
     border-radius:999px;
     padding:7px 14px;
     font-size:13px;
@@ -718,7 +750,7 @@
     border:none;
     font-size:32px;
     line-height:1;
-    color:#4a483f;
+    color:var(--handle);
     padding:2px;
     cursor:pointer;
   }
@@ -727,7 +759,7 @@
   .editor[data-type="movie"] .novel-only,
   .editor[data-type="novel"] .movie-only{display:none;}
 
-  .divider{height:1px;background:#33322c;margin:22px 0;}
+  .divider{height:1px;background:var(--rule);margin:22px 0;}
   .swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
   .seg.small{margin-bottom:12px;}
   .seg.small button{padding:8px;font-size:13px;}
@@ -742,15 +774,38 @@
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);
   }
   .swatch.selected{border-color:var(--accent);}
+  /* title font picker */
+  .title-fonts{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
+  .title-fonts button{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--panel-2);border:2px solid transparent;border-radius:10px;
+    color:var(--text);padding:10px 14px;cursor:pointer;text-align:left;
+  }
+  .title-fonts button.selected{border-color:var(--accent);}
+  .title-fonts .sample{font-size:24px;line-height:1.25;letter-spacing:.04em;white-space:nowrap;}
+  .title-fonts .note{font-size:11px;color:var(--muted);text-align:right;}
+  /* home screen icon picker */
+  .icon-preview{width:112px;height:112px;margin:0 auto 18px;border-radius:22.5%;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.3);}
+  .icon-preview svg, .icon-grid svg{display:block;width:100%;height:100%;}
+  .icon-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  .icon-grid button{
+    padding:0;border:2px solid transparent;border-radius:24%;overflow:hidden;cursor:pointer;
+    background:none;aspect-ratio:1/1;
+  }
+  .icon-grid button.selected{border-color:var(--accent);}
+  .icon-swatches{grid-template-columns:repeat(8,1fr);}
+  .icon-note{font-size:12.5px;line-height:1.7;color:var(--muted);margin:0 0 18px;}
+  .icon-note p{margin:0 0 8px;}
+  .icon-note .text-btn{margin-top:4px;}
   .swatch.custom{
     display:flex;
     align-items:center;
     justify-content:center;
-    background:repeating-conic-gradient(#3a3833 0% 25%, #2a2925 0% 50%) 50% / 8px 8px;
+    background:repeating-conic-gradient(var(--panel-2) 0% 25%, var(--press) 0% 50%) 50% / 8px 8px;
     overflow:hidden;
   }
   .swatch.custom input{opacity:0;width:100%;height:100%;cursor:pointer;}
-  .swatch.custom::after{content:'+';position:absolute;color:#efe9df;font-size:14px;pointer-events:none;}
+  .swatch.custom::after{content:'+';position:absolute;color:var(--text);font-size:14px;pointer-events:none;}
 
   .btn{
     width:100%;
@@ -765,15 +820,15 @@
     font-family:'Zen Kaku Gothic New', sans-serif;
   }
   .btn:active{transform:scale(.98);}
-  .btn.danger{background:transparent;border:1px solid #6b3426;color:#e0826b;margin-top:24px;}
+  .btn.danger{background:transparent;border:1px solid var(--error);color:var(--error);margin-top:24px;}
 
   .toast{
     position:fixed;
     left:50%;
     bottom:calc(100px + env(safe-area-inset-bottom));
     transform:translateX(-50%) translateY(20px);
-    background:#efe9df;
-    color:var(--ink);
+    background:var(--toast-bg);
+    color:var(--toast-text);
     font-size:13px;
     font-weight:700;
     padding:10px 18px;
@@ -816,6 +871,8 @@
       </label>
     </div>
     <button id="bgBtn">背景の色を変える</button>
+    <button id="titleFontBtn">タイトルの書体</button>
+    <button id="iconBtn">ホーム画面のアイコン</button>
     <button id="exportBtn">データを書き出す(バックアップ)</button>
     <button id="importBtn">データを読み込む</button>
   </div>
@@ -880,6 +937,43 @@
   <div class="sheet-foot">
     <button class="text-btn" id="shotClose">閉じる</button>
     <button class="btn" id="shotSave" disabled>保存する</button>
+  </div>
+</section>
+
+<!-- title font sheet -->
+<section class="sheet" id="titleFontSheet" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <h2>タイトルの書体</h2>
+  <p class="sub">いちばん上の「CARD ALBUM」の書体を選べます</p>
+  <div class="title-fonts" id="titleFonts"></div>
+  <div class="sheet-foot">
+    <span></span>
+    <button class="btn" id="titleFontClose">閉じる</button>
+  </div>
+</section>
+
+<!-- home screen icon sheet -->
+<section class="sheet" id="iconSheet" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <h2>ホーム画面のアイコン</h2>
+  <p class="sub">選んだアイコンは、このあと「ホーム画面に追加」したときに使われます</p>
+  <div class="icon-preview" id="iconPreview"></div>
+  <div class="field">
+    <span class="label">デザイン</span>
+    <div class="icon-grid" id="iconGrid"></div>
+  </div>
+  <div class="field">
+    <span class="label">背景の色</span>
+    <div class="seg small" id="iconToneSeg">
+      <button data-tone="pastel">パステル</button>
+      <button data-tone="muted">渋め</button>
+    </div>
+    <div class="swatches icon-swatches" id="iconSwatches"></div>
+  </div>
+  <div class="icon-note" id="iconNote"></div>
+  <div class="sheet-foot">
+    <button class="text-btn" id="iconClose">閉じる</button>
+    <button class="btn" id="iconSave">このアイコンにする</button>
   </div>
 </section>
 
@@ -1058,6 +1152,14 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// The trial copy (card-album-preview) is served from the same site as the real app, so it keeps
+// its cards and settings under its own names and never touches the real ones.
+const APP_ID = /\/card-album-preview\//.test(location.pathname) ? 'card-album-preview' : 'card-album';
+const APP_NAME = APP_ID === 'card-album' ? 'カードアルバム' : 'お試しアルバム';
+if(APP_ID !== 'card-album'){
+  document.title = APP_NAME;
+  document.querySelector('meta[name="apple-mobile-web-app-title"]').content = APP_NAME;
+}
 const $ = id => document.getElementById(id);
 
 // each choice = a Latin face first, then a Japanese face for the characters the Latin one lacks
@@ -1088,7 +1190,7 @@ const DB = {
   db: null,
   open(){
     return new Promise((res, rej) => {
-      const r = indexedDB.open('card-album', 1);
+      const r = indexedDB.open(APP_ID, 1);
       r.onupgradeneeded = () => r.result.createObjectStore('cards', {keyPath:'id'});
       r.onsuccess = () => { this.db = r.result; res(); };
       r.onerror = () => rej(r.error);
@@ -1119,7 +1221,7 @@ let filter = 'all';
 
 let query = '';
 let sortBy = 'seen';
-try{ sortBy = localStorage.getItem('card-album-sort') || 'seen'; }catch(err){}
+try{ sortBy = localStorage.getItem(APP_ID + '-sort') || 'seen'; }catch(err){}
 
 // for search: full-width → half-width, lower case, katakana → hiragana
 function normalize(s){
@@ -1454,7 +1556,7 @@ $('searchClear').addEventListener('click', () => {
 $('sortSelect').value = SORTS[sortBy] ? sortBy : 'seen';
 $('sortSelect').addEventListener('change', e => {
   sortBy = e.target.value;
-  try{ localStorage.setItem('card-album-sort', sortBy); }catch(err){}
+  try{ localStorage.setItem(APP_ID + '-sort', sortBy); }catch(err){}
   renderGrid();
 });
 
@@ -1630,17 +1732,19 @@ async function fontCSSFor(c, el){
   ['Oswald', 'Noto Sans JP'].forEach(n => families.add(n));  // postmark, fallback
   const text = [...new Set(el.textContent.replace(/\s/g, '') + 'NOIMAGE')].join('');
   let css = '';
-  for(const name of families){
-    const spec = FONT_SPECS.find(s => s.split(':')[0] === name);
-    if(!spec) continue;
-    const u = new URL('https://fonts.googleapis.com/css2');
-    u.searchParams.append('family', spec);
-    u.searchParams.set('text', text);
-    let part = await (await fetch(u)).text();
-    for(const m of [...part.matchAll(/url\((https:[^)]+)\)/g)]){
-      part = part.replace(m[1], await blobToDataURL(await (await fetch(m[1])).blob()));
-    }
-    css += part;
+  for(const name of families) css += await embedFontCSS(name, text);
+  return css;
+}
+// @font-face rules for just these characters of one family, with the font files inlined
+async function embedFontCSS(name, text){
+  const spec = FONT_SPECS.find(s => s.split(':')[0] === name);
+  if(!spec) return '';
+  const u = new URL('https://fonts.googleapis.com/css2');
+  u.searchParams.append('family', spec);
+  u.searchParams.set('text', text);
+  let css = await (await fetch(u)).text();
+  for(const m of [...css.matchAll(/url\((https:[^)]+)\)/g)]){
+    css = css.replace(m[1], await blobToDataURL(await (await fetch(m[1])).blob()));
   }
   return css;
 }
@@ -1671,7 +1775,7 @@ async function cardImage(c, withBg){
     holder.remove();
   }
 }
-const SHOT_MODE_KEY = 'card-album-shot-mode';
+const SHOT_MODE_KEY = APP_ID + '-shot-mode';
 let shotMode = 'card';
 try{ shotMode = localStorage.getItem(SHOT_MODE_KEY) === 'bg' ? 'bg' : 'card'; }catch(err){}
 async function renderShot(){
@@ -2223,7 +2327,15 @@ const BG_COLORS = [
   ['#f3eee4', '生成り'], ['#f4ecd2', 'クリーム'], ['#e6dccb', 'サンド'], ['#e6e6e3', '薄いグレー'],
   ['#dbe6ea', '淡い水色'], ['#dfe9df', 'ミント'], ['#e4dfec', 'ラベンダー'], ['#ecdcd8', 'くすみピンク'],
 ];
-const BG_KEY = 'card-album-bg';
+const BG_KEY = APP_ID + '-bg';
+// until a background is picked, it follows the phone's light / dark setting
+const lightScheme = matchMedia('(prefers-color-scheme: light)');
+const defaultBg = () => lightScheme.matches ? '#f3eee4' : BG_COLORS[0][0];
+function savedBg(){
+  let saved = null;
+  try{ saved = localStorage.getItem(BG_KEY); }catch(err){}
+  return /^#[0-9a-f]{6}$/i.test(saved || '') ? saved : null;
+}
 const bgSheet = $('bgSheet'), bgSwatches = $('bgSwatches');
 bgSwatches.innerHTML = BG_COLORS.map(([c, name]) =>
   `<button class="swatch" data-color="${c}" style="background:${c}" title="${name}"></button>`).join('') +
@@ -2255,7 +2367,7 @@ function setBg(hex){
 }
 
 // photo background: shrunk to a JPEG and kept on this device; its average color sets the text tone
-const BG_IMG_KEY = 'card-album-bg-image';
+const BG_IMG_KEY = APP_ID + '-bg-image';
 function applyBgImage(photo){
   const s = document.documentElement.style;
   if(photo){
@@ -2309,9 +2421,7 @@ $('bgImgInput').addEventListener('change', e => {
 $('bgImgRemove').addEventListener('click', () => {
   applyBgImage(null);
   try{ localStorage.removeItem(BG_IMG_KEY); }catch(err){}
-  let saved = null;
-  try{ saved = localStorage.getItem(BG_KEY); }catch(err){}
-  applyBg(/^#[0-9a-f]{6}$/i.test(saved || '') ? saved : BG_COLORS[0][0]);
+  applyBg(savedBg() || defaultBg());
 });
 bgSwatches.addEventListener('click', e => {
   const sw = e.target.closest('.swatch[data-color]');
@@ -2331,14 +2441,14 @@ $('bgBtn').addEventListener('click', () => {
 });
 $('bgClose').addEventListener('click', () => closeLayers());
 (() => {
-  let saved = null, photo = null;
-  try{
-    saved = localStorage.getItem(BG_KEY);
-    photo = JSON.parse(localStorage.getItem(BG_IMG_KEY) || 'null');
-  }catch(err){}
-  applyBg(/^#[0-9a-f]{6}$/i.test(saved || '') ? saved : BG_COLORS[0][0]);
+  let photo = null;
+  try{ photo = JSON.parse(localStorage.getItem(BG_IMG_KEY) || 'null'); }catch(err){}
+  applyBg(savedBg() || defaultBg());
   if(photo && photo.img && /^#[0-9a-f]{6}$/i.test(photo.avg || '')) applyBgImage(photo);
 })();
+lightScheme.addEventListener('change', () => {
+  if(!savedBg() && !document.body.classList.contains('has-bg-image')) applyBg(defaultBg());
+});
 
 /* ---------- menu: export / import ---------- */
 const menu = $('menu');
@@ -2352,7 +2462,8 @@ $('exportBtn').addEventListener('click', () => {
   try{
     settings.bg = localStorage.getItem(BG_KEY);
     settings.bgImage = JSON.parse(localStorage.getItem(BG_IMG_KEY) || 'null');
-    settings.sort = localStorage.getItem('card-album-sort');
+    settings.sort = localStorage.getItem(APP_ID + '-sort');
+    settings.titleFont = localStorage.getItem(TITLE_FONT_KEY);
   }catch(err){}
   const data = JSON.stringify({app:'card-album', version:1, exportedAt:new Date().toISOString(), settings, cards}, null, 1);
   const a = document.createElement('a');
@@ -2375,8 +2486,9 @@ function applyImportedSettings(s){
   if(s.sort && SORTS[s.sort]){
     sortBy = s.sort;
     $('sortSelect').value = sortBy;
-    try{ localStorage.setItem('card-album-sort', sortBy); }catch(err){}
+    try{ localStorage.setItem(APP_ID + '-sort', sortBy); }catch(err){}
   }
+  if(s.titleFont && TITLE_FONTS[s.titleFont]) setTitleFont(s.titleFont);
 }
 $('importBtn').addEventListener('click', () => { menu.hidden = true; $('importInput').click(); });
 $('importInput').addEventListener('change', async e => {
@@ -2408,6 +2520,273 @@ function toast(msg){
   toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
 }
 
+/* ---------- CARD ALBUM title font ---------- */
+// [font family, how the name is written, size, style, label]. The retro faces are only needed for
+// these few letters, so they are fetched as tiny text= subsets instead of whole fonts.
+const TITLE_FONTS = {
+  zenantique: ["'Zen Antique', serif", 'CARD ALBUM', 24, 'normal', 'Zen Antique(古い活字)'],
+  anton:      ["'Anton', sans-serif", 'CARD ALBUM', 24, 'normal', 'Anton(極太ポスター)'],
+  caslon:     ["'Libre Caslon Text', serif", 'Card Album', 26, 'italic', 'Libre Caslon(上品な斜体)'],
+  limelight:  ["'Limelight', serif", 'CARD ALBUM', 23, 'normal', 'Limelight(30年代の映画館)'],
+  abril:      ["'Abril Fatface', serif", 'Card Album', 26, 'normal', 'Abril Fatface(古いポスター)'],
+  rye:        ["'Rye', serif", 'CARD ALBUM', 22, 'normal', 'Rye(西部劇の看板)'],
+  shrikhand:  ["'Shrikhand', serif", 'Card Album', 24, 'normal', 'Shrikhand(70年代ポップ)'],
+  monoton:    ["'Monoton', sans-serif", 'CARD ALBUM', 22, 'normal', 'Monoton(80年代ネオン)'],
+  righteous:  ["'Righteous', sans-serif", 'CARD ALBUM', 24, 'normal', 'Righteous(60〜70年代)'],
+};
+const TITLE_FONT_KEY = APP_ID + '-title-font';
+const SUBSET_FONTS = {limelight:'Limelight', abril:'Abril Fatface', rye:'Rye', shrikhand:'Shrikhand', monoton:'Monoton', righteous:'Righteous'};
+function loadTitleFont(key){
+  const family = SUBSET_FONTS[key];
+  if(!family || document.querySelector(`link[data-title-font="${key}"]`)) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.dataset.titleFont = key;
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}&text=${encodeURIComponent('CARDLBUMcardlbum ')}&display=swap`;
+  document.head.appendChild(link);
+}
+function applyTitleFont(key){
+  const f = TITLE_FONTS[key] || TITLE_FONTS.zenantique;
+  loadTitleFont(key);
+  const h1 = document.querySelector('.topbar h1');
+  h1.textContent = f[1];
+  Object.assign(h1.style, {fontFamily:f[0], fontSize:f[2] + 'px', fontStyle:f[3]});
+}
+function savedTitleFont(){
+  let k = null;
+  try{ k = localStorage.getItem(TITLE_FONT_KEY); }catch(err){}
+  return TITLE_FONTS[k] ? k : 'zenantique';
+}
+function setTitleFont(key){
+  applyTitleFont(key);
+  try{ localStorage.setItem(TITLE_FONT_KEY, key); }catch(err){}
+  renderTitleFonts();
+}
+function renderTitleFonts(){
+  const cur = savedTitleFont();
+  $('titleFonts').innerHTML = Object.entries(TITLE_FONTS).map(([k, f]) =>
+    `<button data-key="${k}" class="${k === cur ? 'selected' : ''}">
+      <span class="sample" style="font-family:${f[0]};font-style:${f[3]}">${f[1]}</span>
+      <span class="note">${f[4]}</span>
+    </button>`).join('');
+}
+const titleFontSheet = $('titleFontSheet');
+$('titleFontBtn').addEventListener('click', () => {
+  menu.hidden = true;
+  Object.keys(SUBSET_FONTS).forEach(loadTitleFont);
+  renderTitleFonts();
+  titleFontSheet.classList.add('open');
+  backdrop.classList.add('open');
+  titleFontSheet.setAttribute('aria-hidden', 'false');
+  pushLayer(() => {
+    titleFontSheet.classList.remove('open');
+    backdrop.classList.remove('open');
+    titleFontSheet.setAttribute('aria-hidden', 'true');
+  });
+});
+$('titleFonts').addEventListener('click', e => {
+  const b = e.target.closest('button[data-key]');
+  if(b) setTitleFont(b.dataset.key);
+});
+$('titleFontClose').addEventListener('click', () => closeLayers());
+applyTitleFont(savedTitleFont());
+
+/* ---------- home screen icon ---------- */
+// The icon designs A–E from the design round (design/icon-options.html), drawn on a card color. The chosen icon is
+// turned into PNGs and handed to the phone through the apple-touch-icon link and a generated
+// manifest; the phone reads them at the moment the app is added to the home screen.
+const ICON_KEY = APP_ID + '-icon';
+const ICON_DESIGNS = [['A', 'カードの束'], ['B', '消印'], ['C', 'フィルム×本'], ['D', '頭文字'], ['E', '額縁']];
+const DEFAULT_ICON = {design:'E', color:'#6e2433'};
+
+function mixHex(a, b, t){
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ch = sh => Math.round((pa >> sh & 255) * (1 - t) + (pb >> sh & 255) * t);
+  return '#' + [16, 8, 0].map(sh => ch(sh).toString(16).padStart(2, '0')).join('');
+}
+// on a pale background the cream / gold drawing turns dark so it stays visible
+function iconColors(bg){
+  return isLight(bg)
+    ? {bg, fg:mixHex(bg, '#000000', .62), gold:'#8a6420', deep:mixHex(bg, '#000000', .25),
+       rose:mixHex(bg, '#000000', .12), sand:mixHex(bg, '#ffffff', .45), paper:mixHex(bg, '#ffffff', .78),
+       photo:mixHex(bg, '#000000', .3), ink:'#1b1416'}
+    : {bg, fg:'#f1e7d6', gold:'#e3b866', deep:mixHex(bg, '#000000', .28),
+       rose:mixHex(bg, '#ffffff', .5), sand:mixHex(bg, '#ffffff', .72), paper:'#f1e7d6',
+       photo:mixHex(bg, '#ffffff', .15), ink:'#1b1416'};
+}
+function iconStar(cx, cy, r, fill){
+  const pts = [];
+  for(let k = 0; k < 10; k++){
+    const a = (-90 + k * 36) * Math.PI / 180, rr = k % 2 ? r * 0.45 : r;
+    pts.push(`${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`);
+  }
+  return `<polygon points="${pts.join(' ')}" fill="${fill}"/>`;
+}
+const iconStars = (cx, cy, r, gap, n, fill) =>
+  Array.from({length:n}, (_, i) => iconStar(cx + (i - (n - 1) / 2) * gap, cy, r, fill)).join('');
+function iconFrame(c){
+  const d = 170, r = 70, W = 1024, H = 1024;
+  const p = `M${d + r} ${d} H${W - d - r} A${r} ${r} 0 0 0 ${W - d} ${d + r} V${H - d - r} A${r} ${r} 0 0 0 ${W - d - r} ${H - d} H${d + r} A${r} ${r} 0 0 0 ${d} ${H - d - r} V${d + r} A${r} ${r} 0 0 0 ${d + r} ${d} Z`;
+  return `<path d="${p}" fill="none" stroke="${c.fg}" stroke-width="18"/>
+    <path d="${p}" fill="none" stroke="${c.fg}" stroke-width="6" transform="translate(512 512) scale(.86) translate(-512 -512)"/>`;
+}
+const ICON_DRAW = {
+  'A': c => `<g transform="translate(512 548)">
+      <g transform="rotate(-17) translate(-70 18)"><rect x="-200" y="-290" width="400" height="580" rx="26" fill="${c.rose}"/></g>
+      <g transform="rotate(11) translate(66 0)"><rect x="-200" y="-290" width="400" height="580" rx="26" fill="${c.sand}"/></g>
+      <g transform="rotate(-3)">
+        <rect x="-200" y="-290" width="400" height="580" rx="26" fill="${c.paper}"/>
+        <rect x="-166" y="-256" width="332" height="332" rx="8" fill="${c.photo}"/>
+        <rect x="-166" y="112" width="210" height="30" rx="15" fill="${c.bg}"/>
+        ${iconStars(-108, 196, 26, 58, 3, c.bg)}
+      </g></g>`,
+  'B': (c, uid) => `<g transform="translate(512 512) rotate(-12)" fill="none" stroke="${c.fg}">
+      <circle r="340" stroke-width="26"/><circle r="286" stroke-width="8"/>
+      <path id="top-${uid}" d="M-212 0 A212 212 0 0 1 212 0"/>
+      <path id="bottom-${uid}" d="M-250 0 A250 250 0 0 0 250 0"/>
+      <line x1="-280" y1="-62" x2="280" y2="-62" stroke-width="8"/>
+      <line x1="-280" y1="62" x2="280" y2="62" stroke-width="8"/>
+      <text font-family="Oswald" font-weight="700" font-size="60" letter-spacing="10" fill="${c.fg}" stroke="none">
+        <textPath href="#top-${uid}" startOffset="50%" text-anchor="middle">CARD ALBUM</textPath></text>
+      <text font-family="Oswald" font-weight="700" font-size="44" letter-spacing="10" fill="${c.fg}" stroke="none">
+        <textPath href="#bottom-${uid}" startOffset="50%" text-anchor="middle">MOVIES · NOVELS</textPath></text>
+      <g stroke="none">${iconStars(0, 0, 40, 100, 3, c.gold)}</g></g>`,
+  'C': c => `<g transform="translate(0 30)">
+      <path d="M512 330 C420 278 268 274 168 318 L168 700 C268 656 420 660 512 712 Z" fill="${c.paper}"/>
+      <path d="M512 330 C604 278 756 274 856 318 L856 700 C756 656 604 660 512 712 Z" fill="${c.sand}"/>
+      <path d="M512 330 L512 712" stroke="${c.deep}" stroke-width="10"/>
+      <g opacity=".35" stroke="${c.bg}" stroke-width="12" stroke-linecap="round">
+        <path d="M236 410 C300 390 380 390 450 414"/><path d="M236 480 C300 460 380 460 450 484"/><path d="M236 550 C300 530 380 530 450 554"/>
+      </g>
+      <g transform="translate(640 190)"><path d="M0 0 H104 V640 L52 600 L0 640 Z" fill="${c.ink}"/>
+        ${Array.from({length:16}, (_, i) => `<rect x="12" y="${18 + i * 36}" width="18" height="20" rx="4" fill="#f1e7d6"/><rect x="74" y="${18 + i * 36}" width="18" height="20" rx="4" fill="#f1e7d6"/>`).join('')}
+      </g></g>`,
+  'D': c => `<text x="512" y="640" text-anchor="middle" font-family="Anton" font-size="470" letter-spacing="6" fill="${c.fg}">CA</text>
+      <rect x="252" y="700" width="520" height="12" fill="${c.fg}"/>${iconStars(512, 800, 36, 96, 3, c.gold)}`,
+  'E': c => `${iconFrame(c)}${iconStar(512, 520, 190, c.gold)}`,
+};
+// scale < 1 leaves a margin (Android's round / squircle masks crop the edges)
+function iconSVG(pref, uid, fontCSS = '', scale = 1){
+  const c = iconColors(pref.color);
+  const draw = (ICON_DRAW[pref.design] || ICON_DRAW[DEFAULT_ICON.design])(c, uid);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">` +
+    (fontCSS ? `<style>${fontCSS}</style>` : '') +
+    `<rect width="1024" height="1024" fill="${c.bg}"/>` +
+    `<g transform="translate(512 512) scale(${scale}) translate(-512 -512)">${draw}</g></svg>`;
+}
+// an SVG drawn into a canvas cannot load web fonts, so the two lettered designs get theirs inlined
+async function iconFontCSS(design){
+  try{
+    if(design === 'B') return await embedFontCSS('Oswald', 'CARDLBUMOVIESN·');
+    if(design === 'D') return await embedFontCSS('Anton', 'CA');
+  }catch(err){ console.warn(err); }
+  return '';
+}
+async function iconPNG(pref, size, fontCSS, scale = 1){
+  const img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconSVG(pref, 'png', fontCSS, scale));
+  await img.decode();
+  await new Promise(r => setTimeout(r, 60));  // Safari: let the inlined font settle
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  cv.getContext('2d').drawImage(img, 0, 0, size, size);
+  return cv.toDataURL('image/png');
+}
+function readIconPref(){
+  try{
+    const p = JSON.parse(localStorage.getItem(ICON_KEY) || 'null');
+    if(p && ICON_DRAW[p.design] && /^#[0-9a-f]{6}$/i.test(p.color)) return p;
+  }catch(err){}
+  return null;
+}
+let iconManifestURL = null;
+async function applyIcon(pref){
+  const fontCSS = await iconFontCSS(pref.design);
+  const [p180, p192, p512, m512] = await Promise.all([
+    iconPNG(pref, 180, fontCSS), iconPNG(pref, 192, fontCSS), iconPNG(pref, 512, fontCSS), iconPNG(pref, 512, fontCSS, .78)]);
+  document.querySelector('link[rel="apple-touch-icon"]').href = p180;
+  document.querySelector('link[rel="icon"]').href = p192;
+  // the generated manifest lives at a blob: address, so its links must be absolute
+  const base = new URL('./', location.href).href;
+  const manifest = {
+    name:APP_NAME, short_name:APP_NAME, description:'見た映画・読んだ小説のカードアルバム', lang:'ja',
+    start_url:base, scope:base, display:'standalone', background_color:'#0f0e0c', theme_color:'#0f0e0c',
+    icons:[
+      {src:p192, sizes:'192x192', type:'image/png', purpose:'any'},
+      {src:p512, sizes:'512x512', type:'image/png', purpose:'any'},
+      {src:m512, sizes:'512x512', type:'image/png', purpose:'maskable'},
+    ],
+  };
+  if(iconManifestURL) URL.revokeObjectURL(iconManifestURL);
+  iconManifestURL = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'}));
+  document.querySelector('link[rel="manifest"]').href = iconManifestURL;
+}
+
+const iconSheet = $('iconSheet');
+let iconPick = null, iconTone = 'muted';
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function renderIconSheet(){
+  const pick = iconPick;
+  $('iconPreview').innerHTML = iconSVG(pick, 'pv');
+  $('iconGrid').innerHTML = ICON_DESIGNS.map(([k, name]) =>
+    `<button data-design="${k}" class="${k === pick.design ? 'selected' : ''}" title="${k} ${name}" aria-label="${k} ${name}">${iconSVG({design:k, color:pick.color}, 'g' + k)}</button>`).join('');
+  $('iconToneSeg').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tone === iconTone));
+  $('iconSwatches').innerHTML = CARD_COLORS[iconTone].map(([c, name]) =>
+    `<button class="swatch${c === pick.color ? ' selected' : ''}" data-color="${c}" style="background:${c}" title="${name}" aria-label="${name}"></button>`).join('');
+}
+function renderIconNote(){
+  $('iconNote').innerHTML = isStandalone()
+    ? `<p>ホーム画面にあるアイコンは、追加したときのまま変わりません。変えるときは、ホーム画面のアイコンを削除し、ブラウザでこのページを開いて、アイコンを選んでから追加し直してください。</p>
+       <p><b>iPhone では、ホーム画面から削除するとカードも一緒に消えます。</b>先に「データを書き出す」でバックアップを取り、追加し直したあとに「データを読み込む」で戻してください。</p>
+       <button class="text-btn" id="iconBackup">データを書き出す(バックアップ)</button>`
+    : `<p>「このアイコンにする」を押したあと、iPhone は共有ボタン、Android はメニューから「ホーム画面に追加」を選ぶと、このアイコンで追加されます。</p>`;
+}
+$('iconBtn').addEventListener('click', () => {
+  menu.hidden = true;
+  iconPick = Object.assign({}, readIconPref() || DEFAULT_ICON);
+  iconTone = toneOf(iconPick.color) || 'muted';
+  renderIconSheet();
+  renderIconNote();
+  iconSheet.classList.add('open');
+  backdrop.classList.add('open');
+  iconSheet.setAttribute('aria-hidden', 'false');
+  pushLayer(() => {
+    iconSheet.classList.remove('open');
+    backdrop.classList.remove('open');
+    iconSheet.setAttribute('aria-hidden', 'true');
+  });
+});
+$('iconGrid').addEventListener('click', e => {
+  const b = e.target.closest('button[data-design]');
+  if(b){ iconPick.design = b.dataset.design; renderIconSheet(); }
+});
+$('iconToneSeg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tone]');
+  if(b){ iconTone = b.dataset.tone; renderIconSheet(); }
+});
+$('iconSwatches').addEventListener('click', e => {
+  const b = e.target.closest('.swatch[data-color]');
+  if(b){ iconPick.color = b.dataset.color; renderIconSheet(); }
+});
+$('iconNote').addEventListener('click', e => { if(e.target.id === 'iconBackup') $('exportBtn').click(); });
+$('iconClose').addEventListener('click', () => closeLayers());
+$('iconSave').addEventListener('click', async () => {
+  const pref = Object.assign({}, iconPick);
+  try{ localStorage.setItem(ICON_KEY, JSON.stringify(pref)); }catch(err){}
+  try{
+    await applyIcon(pref);
+    toast(isStandalone() ? 'アイコンを保存しました(追加し直すと変わります)' : 'アイコンを設定しました。ホーム画面に追加してください');
+  }catch(err){
+    console.error(err);
+    toast('アイコンを作れませんでした');
+  }
+});
+(() => {
+  // the trial copy always gets a generated manifest, so it is added under its own name
+  const pref = readIconPref() || (APP_ID === 'card-album' ? null : DEFAULT_ICON);
+  if(pref) applyIcon(pref).catch(err => console.warn(err));
+})();
+
 /* ---------- start ---------- */
 (async () => {
   try{
@@ -2435,7 +2814,7 @@ async function checkForUpdate(){
     const latest = Date.parse(res.headers.get('last-modified') || '');
     const mine = Date.parse(document.lastModified);
     if(!latest || !mine || latest <= mine + 1000) return;
-    const KEY = 'card-album-reloaded-for';
+    const KEY = APP_ID + '-reloaded-for';
     if(sessionStorage.getItem(KEY) === String(latest)) return;  // never loop
     sessionStorage.setItem(KEY, String(latest));
     if(sheetId) await saveSheet();  // keep a memo being typed
