@@ -801,11 +801,19 @@
   /* ---------- review / stats page ---------- */
   .stats{
     position:fixed;inset:0;z-index:35;  /* under the memo sheet (41), which opens from the calendar */
-    background:var(--bg);color:var(--text);
+    background:var(--app-bg);color:var(--on-app);
     display:flex;flex-direction:column;
   }
-  .stats .editor-top{border-bottom-color:var(--border);}
-  .stats .editor-top .text-btn{color:var(--text);border-color:var(--border);}
+  /* same background as the album (color or photo); the cards on it keep the panel colors */
+  body.has-bg-image .stats{
+    background:linear-gradient(var(--app-scrim), var(--app-scrim)), var(--app-bg-image) center / cover no-repeat;
+  }
+  .stats .editor-top{border-bottom-color:var(--app-line);}
+  .stats .editor-top .text-btn{color:var(--on-app);border-color:var(--app-line);}
+  /* panels keep their own text colors; text placed straight on the background follows it */
+  .stat-card, .stat-tile, .li, .li-add, .cal-day, .cal-item{color:var(--text);}
+  .stats .stat-empty, .stats .li-head, .stats .cal-sum, .stats .cal-w, .stats .cal-list > .hint{color:var(--on-app-muted);}
+  .stats .cal-head .icon-btn{color:var(--on-app);}
   .stats-spacer{width:64px;}
   .stats-body{flex:1;overflow-y:auto;padding:16px 16px calc(40px + env(safe-area-inset-bottom));}
   .stats-inner{max-width:520px;margin:0 auto;}
