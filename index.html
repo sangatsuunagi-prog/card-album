@@ -1400,7 +1400,7 @@
 
         <div class="row2">
           <div class="field" data-field="year">
-            <label for="fYear">発表年<span class="opt">任意</span></label>
+            <label for="fYear"><span id="yearLabel">発表年</span><span class="opt">任意</span></label>
             <input type="text" id="fYear" inputmode="numeric" maxlength="4" placeholder="2024">
             <div class="err-msg">数字で入力してください</div>
           </div>
@@ -2428,6 +2428,7 @@ function setType(t){
   edType = t;
   setGenre(genre);
   editor.dataset.type = t;
+  $('yearLabel').textContent = t === 'other' ? '公開年' : '発表年';
   document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('active', b.dataset.type === t));
   updatePreview();
 }
@@ -3285,24 +3286,15 @@ function paceChart(year, list){
   const series = seriesFor(list).map(([type, name, unit, color]) =>
     ({type, name, unit, color, v:months.map(m => list.filter(c => c.type === type && c.date.startsWith(m)).length)}));
   const [step, top] = tick(Math.max(1, ...series.flatMap(s => s.v)));
-  const W = 320, H = 180, L = 24, R = 40, T = 10, B = 22;
+  const W = 320, H = 180, L = 24, R = 12, T = 10, B = 22;
   const x = i => L + i * (W - L - R) / 11, y = v => T + (1 - v / top) * (H - T - B);
   const grid = [0, step, step * 2, top].map(v =>
     `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end">${v}</text>`).join('');
-  // end labels: keep the names at least 12px apart when the lines finish close together
-  const ends = series.map(s => y(s.v[11]) + 4);
-  const order = ends.map((_, k) => k).sort((a, b) => ends[a] - ends[b]);
-  for(let pass = 0; pass < 3; pass++){
-    for(let j = 1; j < order.length; j++){
-      const a = order[j - 1], b = order[j], gap = ends[b] - ends[a];
-      if(gap < 12){ ends[a] -= (12 - gap) / 2; ends[b] += (12 - gap) / 2; }
-    }
-  }
-  const lines = series.map((s, k) => `
+  // the legend above names the lines, so there are no labels at the line ends
+  const lines = series.map(s => `
     <polyline fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
       points="${s.v.map((v, i) => `${x(i)},${y(v)}`).join(' ')}"/>
-    ${s.v.map((v, i) => v ? `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${s.color}" stroke="var(--panel)" stroke-width="2"/>` : '').join('')}
-    <text class="end" x="${x(11) + 7}" y="${ends[k]}">${s.name}</text>`).join('');
+    ${s.v.map((v, i) => v ? `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${s.color}" stroke="var(--panel)" stroke-width="2"/>` : '').join('')}`).join('');
   const labels = months.map((m, i) => `<text class="axis" x="${x(i)}" y="${H - 6}" text-anchor="middle">${i + 1}</text>`).join('');
   const hits = months.map((m, i) => `<rect class="hit" data-i="${i}" x="${x(i) - 12}" y="${T}" width="24" height="${H - T - B}"/>`).join('');
   paceRows = months.map((m, i) => `${i + 1}月：${series.map(s => `${s.name}${s.v[i]}${s.unit}`).join('・')}`);
