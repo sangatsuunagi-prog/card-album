@@ -877,7 +877,10 @@
   .chart .end, .chart .lbl{font-size:11px;fill:var(--text);}
   .chart .lbl .num{fill:var(--muted);}
   .chart .hit{fill:transparent;cursor:pointer;}
-  .chart .cursor{stroke:var(--muted);stroke-width:1;}
+  .chart .cursor{stroke:var(--muted);stroke-width:1;transition:transform .15s ease-out;}
+  /* sliding a finger sideways moves the readout; up and down still scrolls the page */
+  .chart, .cols{touch-action:pan-y;}
+  .col .bar{transition:filter .15s;}
   .legend{display:flex;gap:14px;font-size:12px;margin:0 0 6px;}
   .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;}
   /* month calendar */
@@ -3315,7 +3318,7 @@ function paceChart(year, list, type){
   const hits = months.map((m, i) => `<rect class="hit" data-i="${i}" x="${x(i) - 12}" y="${T}" width="24" height="${H - T - B}"/>`).join('');
   paceRows = months.map((m, i) => `${i + 1}月：${series.map(s => `${s.name}${s.v[i]}${s.unit}`).join('・')}`);
   return `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join('')}</div>
-    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="月ごとの数">${grid}${labels}${lines}${hits}
+    <svg class="chart" viewBox="0 0 ${W} ${H}" data-x0="${L}" data-dx="${(W - L - R) / 11}" role="img" aria-label="月ごとの数">${grid}${labels}${lines}${hits}
       <line class="cursor" id="paceCursor" x1="0" x2="0" y1="${T}" y2="${H - B}" visibility="hidden"/></svg>
     <div class="col-readout" id="paceReadout">グラフを押すと、その月の数が出ます</div>`;
 }
@@ -3408,16 +3411,46 @@ function renderStats(){
     </div>
     <section class="stat-card"><h3>よく使ったタグ</h3><p class="hint">上位5つ</p>${barList(tags, '件')}</section>`;
 }
+let paceShown = -1;
 function showPace(i){
-  if(!paceRows[i]) return;
+  if(!paceRows[i] || (i === paceShown && $('paceReadout').textContent === paceRows[i])) return;
+  paceShown = i;
   $('paceReadout').textContent = paceRows[i];
   document.querySelectorAll('#statCols .col').forEach((el, k) => el.classList.toggle('active', k === i));
   const hit = document.querySelector(`.chart .hit[data-i="${i}"]`), cur = $('paceCursor');
   if(hit && cur){
-    const cx = Number(hit.getAttribute('x')) + 12;
-    cur.setAttribute('x1', cx); cur.setAttribute('x2', cx); cur.setAttribute('visibility', 'visible');
+    // the line glides to the month; the first time it simply appears there
+    const first = cur.getAttribute('visibility') === 'hidden';
+    if(first) cur.style.transition = 'none';
+    cur.style.transform = `translateX(${Number(hit.getAttribute('x')) + 12}px)`;
+    if(first){ cur.getBoundingClientRect(); cur.style.transition = ''; cur.setAttribute('visibility', 'visible'); }
   }
 }
+// slide a finger along the chart: the month (or year) under it is shown as it moves
+let paceScrub = null;
+function scrubPace(e){
+  const area = paceScrub.area, r = area.getBoundingClientRect();
+  let i;
+  if(area.id === 'statCols'){
+    i = Math.floor((e.clientX - r.left) / r.width * area.children.length);
+  }else{
+    const x = (e.clientX - r.left) / r.width * area.viewBox.baseVal.width;
+    i = Math.round((x - Number(area.dataset.x0)) / Number(area.dataset.dx));
+  }
+  showPace(clamp(i, 0, paceRows.length - 1));
+}
+$('statsContent').addEventListener('pointerdown', e => {
+  const area = e.target.closest('svg.chart[data-x0], #statCols');
+  if(!area) return;
+  paceScrub = {id:e.pointerId, area};
+  scrubPace(e);
+});
+$('statsContent').addEventListener('pointermove', e => {
+  if(paceScrub && e.pointerId === paceScrub.id) scrubPace(e);
+});
+['pointerup', 'pointercancel'].forEach(t => $('statsContent').addEventListener(t, e => {
+  if(paceScrub && e.pointerId === paceScrub.id) paceScrub = null;
+}));
 
 // month calendar: a photo (or the card's color) on each day something was watched / read
 function renderCalendar(){
