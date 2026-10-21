@@ -1093,7 +1093,7 @@
     <button class="icon-btn" id="viewerClose" aria-label="閉じる">✕</button>
     <span class="viewer-count" id="viewerCount"></span>
     <div class="viewer-actions">
-      <button class="text-btn" id="viewerShot">画像で保存</button>
+      <button class="text-btn" id="viewerShot">保存・シェア</button>
       <button class="text-btn" id="viewerEdit">編集</button>
     </div>
   </div>
@@ -1182,7 +1182,7 @@
 <!-- save card as image -->
 <section class="sheet" id="shotSheet" aria-hidden="true">
   <div class="sheet-handle"></div>
-  <h2>カードを画像で保存</h2>
+  <h2>カードを保存・シェア</h2>
   <p class="sub" id="shotSub"></p>
   <div class="seg small" id="shotSeg">
     <button type="button" data-mode="card">カードだけ</button>
@@ -1192,7 +1192,7 @@
   <p class="shot-note">シェアするときの写真の著作権・肖像権は、ご自身の責任でお願いします。SNS には権利者が認める範囲で。</p>
   <div class="sheet-foot">
     <button class="text-btn" id="shotClose">閉じる</button>
-    <button class="btn" id="shotSave" disabled>保存する</button>
+    <button class="btn" id="shotSave" disabled>保存・シェア</button>
   </div>
 </section>
 
@@ -1220,7 +1220,7 @@
   <div class="about">
     <h3>📱 データの置き場所</h3>
     <p>カードや写真、メモは、この端末(ブラウザ)の中だけに保存されます。サーバーに保存する仕組みはなく、作者を含め、ほかの人が見ることはできません。</p>
-    <p>※書体などの部品はインターネットから読み込みます。「画像で保存」のときは、カードの文字の書体を取り寄せるため、その文字が Google Fonts に送られます。</p>
+    <p>※書体などの部品はインターネットから読み込みます。「保存・シェア」で画像を作るときは、カードの文字の書体を取り寄せるため、その文字が Google Fonts に送られます。</p>
 
     <h3>💾 バックアップ</h3>
     <p>次の場合、カードが消えることがあります。大切なカードは「⋯ → データを書き出す」で、ときどきバックアップしてください。</p>
@@ -2201,7 +2201,9 @@ async function renderShot(){
     shotImg.src = url;
     shotImg.classList.add('ready');
     shotSave.disabled = false;
-    shotSub.textContent = '「保存する」を押すか、画像を長押しして保存できます';
+    shotSub.textContent = matchMedia('(pointer:coarse)').matches
+      ? '「保存・シェア」を押すと共有画面が開きます。写真への保存や、LINE・SNSに送れます'
+      : '「保存・シェア」を押すと画像をダウンロードします';
   }catch(err){
     console.error(err);
     if(shot && shot.token === token && shotMode === mode) shotSub.textContent = '画像を作れませんでした。通信状況を確認して、もう一度お試しください';
